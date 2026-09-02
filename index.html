@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Area Model</title>
+
+<style>
+:root{
+  --bg:#f8f7fb;
+  --card:#ffffff;
+  --text:#2f3142;
+  --muted:#6e7287;
+  --line:#d9d8e4;
+  --accent:#8fa8d8;
+  --pink:#f0b9c7;
+  --green:#b8d8c6;
+  --yellow:#f3d7a3;
+  --shadow:0 14px 34px rgba(67,72,96,.09);
+  --radius:22px;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--text);
+  background:var(--bg);
+  min-height:100vh;
+}
+
+.app{
+  max-width:1180px;
+  margin:auto;
+  padding:28px 18px 44px;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px;
+  margin-bottom:20px;
+}
+
+h1{
+  margin:0;
+  font-size:clamp(1.8rem,3vw,2.7rem);
+  letter-spacing:-.04em;
+}
+
+.subtitle{
+  margin:8px 0 0;
+  color:var(--muted);
+  max-width:700px;
+}
+
+.mode-switch{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+button,input{
+  font:inherit;
+}
+
+button{
+  border:0;
+  cursor:pointer;
+}
+
+.pill{
+  border-radius:999px;
+  padding:10px 15px;
+  background:#ececf4;
+  font-weight:700;
+}
+
+.pill.active{
+  background:var(--text);
+  color:white;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 320px;
+  gap:20px;
+  align-items:start;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+  border-radius:var(--radius);
+}
+
+.workspace-card{
+  padding:22px;
+  overflow:visible;
+}
+
+.side-card{
+  padding:20px;
+  position:sticky;
+  top:18px;
+}
+
+.mode-panel{display:none}
+.mode-panel.active{display:block}
+
+.model-stage{
+  display:flex;
+  justify-content:center;
+  overflow:auto;
+  padding:18px 10px 10px;
+}
+
+.area-model{
+  display:grid;
+  grid-template-columns:90px repeat(2,minmax(150px,1fr));
+  grid-template-rows:64px repeat(2,minmax(140px,1fr));
+  width:min(100%,760px);
+  min-width:590px;
+  gap:0;
+}
+
+.corner{
+  background:transparent;
+}
+
+.edge{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px;
+  background:#f6f4fa;
+}
+
+.edge.top{
+  border:1px solid var(--line);
+  border-bottom:0;
+}
+
+.edge.left{
+  border:1px solid var(--line);
+  border-right:0;
+}
+
+.edge.top.first{
+  border-top-left-radius:14px;
+}
+
+.edge.top.last{
+  border-top-right-radius:14px;
+}
+
+.edge.left.last{
+  border-bottom-left-radius:14px;
+}
+
+.edge-input{
+  width:100%;
+  height:44px;
+  min-width:0;
+  padding:8px 10px;
+  border:1px solid #cfcfdb;
+  border-radius:10px;
+  background:white;
+  text-align:center;
+  font-weight:800;
+  font-size:1.05rem;
+  color:var(--text);
+  outline:none;
+}
+
+.edge-input:focus,
+.cell-input:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(143,168,216,.2);
+}
+
+.cell{
+  position:relative;
+  min-height:140px;
+  border:1px solid rgba(88,92,112,.18);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.cell.blue{
+  background:rgba(143,168,216,.42);
+}
+
+.cell.pink{
+  background:rgba(240,185,199,.42);
+}
+
+.cell.green{
+  background:rgba(184,216,198,.48);
+}
+
+.cell.yellow{
+  background:rgba(243,215,163,.48);
+}
+
+.cell.bottom-right{
+  border-bottom-right-radius:14px;
+}
+
+.cell-input{
+  position:relative;
+  z-index:3;
+  width:78%;
+  min-width:110px;
+  max-width:190px;
+  min-height:46px;
+  padding:9px 10px;
+  border:1px solid rgba(92,96,120,.25);
+  border-radius:11px;
+  background:rgba(255,255,255,.93);
+  text-align:center;
+  font-size:1.08rem;
+  font-weight:800;
+  color:var(--text);
+  outline:none;
+}
+
+.product-label{
+  position:absolute;
+  left:8px;
+  bottom:7px;
+  z-index:2;
+  padding:3px 6px;
+  border-radius:6px;
+  background:rgba(255,255,255,.6);
+  font-size:.75rem;
+  font-weight:800;
+}
+
+.grid-overlay{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  display:none;
+  opacity:.45;
+  background-image:
+    linear-gradient(to right,rgba(66,70,87,.25) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(66,70,87,.25) 1px,transparent 1px);
+  background-size:var(--grid-x,24px) var(--grid-y,24px);
+}
+
+.show-grid .grid-overlay{
+  display:block;
+}
+
+.equation-output{
+  margin-top:18px;
+  min-height:54px;
+  padding:14px 16px;
+  border-radius:16px;
+  background:#f2f2f7;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-weight:800;
+}
+
+.controls{
+  display:grid;
+  gap:14px;
+  margin-top:14px;
+}
+
+.toggle-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+
+.toggle-copy small{
+  display:block;
+  color:var(--muted);
+  margin-top:3px;
+}
+
+.switch{
+  position:relative;
+  width:48px;
+  height:28px;
+  flex-shrink:0;
+}
+
+.switch input{
+  opacity:0;
+  width:0;
+  height:0;
+}
+
+.slider{
+  position:absolute;
+  inset:0;
+  background:#d8d9e3;
+  border-radius:999px;
+}
+
+.slider:before{
+  content:"";
+  position:absolute;
+  width:22px;
+  height:22px;
+  left:3px;
+  top:3px;
+  background:white;
+  border-radius:50%;
+  transition:.2s;
+}
+
+.switch input:checked + .slider{
+  background:var(--accent);
+}
+
+.switch input:checked + .slider:before{
+  transform:translateX(20px);
+}
+
+.grid-resizer{
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fbfbfd;
+}
+
+.grid-resizer h4{
+  margin:0 0 10px;
+}
+
+.range-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+}
+
+.range-row label{
+  width:70px;
+  font-size:.85rem;
+}
+
+.range-row input{
+  flex:1;
+}
+
+.primary,
+.secondary{
+  width:100%;
+  padding:12px;
+  border-radius:14px;
+  font-weight:800;
+}
+
+.primary{
+  background:var(--text);
+  color:white;
+}
+
+.secondary{
+  background:#ececf4;
+  color:var(--text);
+}
+
+.status{
+  margin-top:12px;
+  min-height:20px;
+  color:var(--muted);
+}
+
+@media(max-width:900px){
+  .layout{
+    grid-template-columns:1fr;
+  }
+
+  .side-card{
+    position:static;
+  }
+
+  header{
+    flex-direction:column;
+  }
+}
+
+@media(max-width:620px){
+  .app{
+    padding:18px 10px;
+  }
+
+  .workspace-card,
+  .side-card{
+    padding:15px;
+  }
+
+  .area-model{
+    grid-template-columns:82px repeat(2,170px);
+    grid-template-rows:66px repeat(2,150px);
+  }
+
+  .edge-input{
+    height:46px;
+  }
+
+  .cell-input{
+    width:82%;
+    min-width:118px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header>
+  <div>
+    <h1>Interactive Area Model</h1>
+    <p class="subtitle">
+      Build whole-number and polynomial multiplication visually.
+      Enter factor parts on the edges and partial products inside the model.
+    </p>
+  </div>
+
+  <div class="mode-switch">
+    <button class="pill active" data-mode="whole">Whole Numbers</button>
+    <button class="pill" data-mode="poly">Polynomials</button>
+  </div>
+</header>
+
+<div class="layout">
+
+<main class="card workspace-card">
+
+<section id="wholePanel" class="mode-panel active">
+
+<h2>Whole Number Workspace</h2>
+
+<div class="model-stage">
+
+<div id="wholeModel" class="area-model">
+
+<div class="corner"></div>
+
+<div class="edge top first">
+<input id="wTop1" class="edge-input" placeholder="10">
+</div>
+
+<div class="edge top last">
+<input id="wTop2" class="edge-input" placeholder="1">
+</div>
+
+<div class="edge left">
+<input id="wLeft1" class="edge-input" placeholder="20">
+</div>
+
+<div class="cell blue">
+<div class="grid-overlay"></div>
+<input id="wCell11" class="cell-input" placeholder="product">
+<span id="wLabel11" class="product-label">20 × 10</span>
+</div>
+
+<div class="cell pink">
+<div class="grid-overlay"></div>
+<input id="wCell12" class="cell-input" placeholder="product">
+<span id="wLabel12" class="product-label">20 × 1</span>
+</div>
+
+<div class="edge left last">
+<input id="wLeft2" class="edge-input" placeholder="3">
+</div>
+
+<div class="cell green">
+<div class="grid-overlay"></div>
+<input id="wCell21" class="cell-input" placeholder="product">
+<span id="wLabel21" class="product-label">3 × 10</span>
+</div>
+
+<div class="cell yellow bottom-right">
+<div class="grid-overlay"></div>
+<input id="wCell22" class="cell-input" placeholder="product">
+<span id="wLabel22" class="product-label">3 × 1</span>
+</div>
+
+</div>
+</div>
+
+<div id="wholeEquation" class="equation-output">
+Enter factor parts to build the model.
+</div>
+
+<div id="wholeStatus" class="status"></div>
+
+</section>
+
+
+<section id="polyPanel" class="mode-panel">
+
+<h2>Polynomial Workspace</h2>
+
+<div class="model-stage">
+
+<div id="polyModel" class="area-model">
+
+<div class="corner"></div>
+
+<div class="edge top first">
+<input id="pTop1" class="edge-input" value="x">
+</div>
+
+<div class="edge top last">
+<input id="pTop2" class="edge-input" value="3">
+</div>
+
+<div class="edge left">
+<input id="pLeft1" class="edge-input" value="x">
+</div>
+
+<div class="cell blue">
+<div class="grid-overlay"></div>
+<input id="pCell11" class="cell-input" placeholder="product">
+<span id="pLabel11" class="product-label">x × x</span>
+</div>
+
+<div class="cell pink">
+<div class="grid-overlay"></div>
+<input id="pCell12" class="cell-input" placeholder="product">
+<span id="pLabel12" class="product-label">x × 3</span>
+</div>
+
+<div class="edge left last">
+<input id="pLeft2" class="edge-input" value="2">
+</div>
+
+<div class="cell green">
+<div class="grid-overlay"></div>
+<input id="pCell21" class="cell-input" placeholder="product">
+<span id="pLabel21" class="product-label">2 × x</span>
+</div>
+
+<div class="cell yellow bottom-right">
+<div class="grid-overlay"></div>
+<input id="pCell22" class="cell-input" placeholder="product">
+<span id="pLabel22" class="product-label">2 × 3</span>
+</div>
+
+</div>
+</div>
+
+<div id="polyEquation" class="equation-output">
+(x + 2)(x + 3)
+</div>
+
+<div id="polyStatus" class="status"></div>
+
+</section>
+
+</main>
+
+
+<aside class="card side-card">
+
+<h3>Model Controls</h3>
+
+<div class="controls">
+
+<div class="toggle-row">
+
+<div class="toggle-copy">
+<strong>Show unit squares</strong>
+<small>
+Display a unit-square grid inside the area model.
+</small>
+</div>
+
+<label class="switch">
+<input id="gridToggle" type="checkbox">
+<span class="slider"></span>
+</label>
+
+</div>
+
+
+<div class="grid-resizer">
+
+<h4>Grid size</h4>
+
+<div class="range-row">
+<label>Columns</label>
+<input id="gridX" type="range" min="12" max="48" value="24">
+</div>
+
+<div class="range-row">
+<label>Rows</label>
+<input id="gridY" type="range" min="12" max="48" value="24">
+</div>
+
+</div>
+
+
+<button id="fillProducts" class="primary">
+Fill Products
+</button>
+
+<button id="checkProducts" class="secondary">
+Check My Work
+</button>
+
+<button id="clearProducts" class="secondary">
+Clear Products
+</button>
+
+</div>
+
+</aside>
+
+</div>
+</div>
+
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+let mode = "whole";
+
+
+document.querySelectorAll("[data-mode]").forEach(button => {
+
+  button.addEventListener("click", () => {
+
+    mode = button.dataset.mode;
+
+    document.querySelectorAll("[data-mode]").forEach(b => {
+      b.classList.toggle("active", b === button);
+    });
+
+    $("wholePanel").classList.toggle("active", mode === "whole");
+    $("polyPanel").classList.toggle("active", mode === "poly");
+
+    updateGrid();
+
+  });
+
+});
+
+
+function clean(value){
+  return (value || "").trim();
+}
+
+
+function numberValue(value){
+
+  if(clean(value) === ""){
+    return null;
+  }
+
+  const n = Number(value);
+
+  return Number.isFinite(n) ? n : null;
+
+}
+
+
+function updateWhole(){
+
+  const left1 = clean($("wLeft1").value);
+  const left2 = clean($("wLeft2").value);
+
+  const top1 = clean($("wTop1").value);
+  const top2 = clean($("wTop2").value);
+
+
+  $("wLabel11").textContent =
+    `${left1 || "□"} × ${top1 || "□"}`;
+
+  $("wLabel12").textContent =
+    `${left1 || "□"} × ${top2 || "□"}`;
+
+  $("wLabel21").textContent =
+    `${left2 || "□"} × ${top1 || "□"}`;
+
+  $("wLabel22").textContent =
+    `${left2 || "□"} × ${top2 || "□"}`;
+
+
+  const a = numberValue(left1);
+  const b = numberValue(left2);
+  const c = numberValue(top1);
+  const d = numberValue(top2);
+
+
+  if([a,b,c,d].every(v => v !== null)){
+
+    $("wholeEquation").textContent =
+      `(${a} + ${b}) × (${c} + ${d}) = ${(a+b)*(c+d)}`;
+
+  }else{
+
+    $("wholeEquation").textContent =
+      "Enter factor parts to build the model.";
+
+  }
+
+}
+
+
+["wLeft1","wLeft2","wTop1","wTop2"].forEach(id => {
+  $(id).addEventListener("input",updateWhole);
+});
+
+
+function updatePoly(){
+
+  const left1 = clean($("pLeft1").value);
+  const left2 = clean($("pLeft2").value);
+
+  const top1 = clean($("pTop1").value);
+  const top2 = clean($("pTop2").value);
+
+
+  $("pLabel11").textContent =
+    `${left1 || "□"} × ${top1 || "□"}`;
+
+  $("pLabel12").textContent =
+    `${left1 || "□"} × ${top2 || "□"}`;
+
+  $("pLabel21").textContent =
+    `${left2 || "□"} × ${top1 || "□"}`;
+
+  $("pLabel22").textContent =
+    `${left2 || "□"} × ${top2 || "□"}`;
+
+
+  $("polyEquation").textContent =
+    `(${left1 || "□"} + ${left2 || "□"})` +
+    `(${top1 || "□"} + ${top2 || "□"})`;
+
+}
+
+
+["pLeft1","pLeft2","pTop1","pTop2"].forEach(id => {
+  $(id).addEventListener("input",updatePoly);
+});
+
+
+function parseMonomial(value){
+
+  let s = clean(value)
+    .replace(/\s+/g,"")
+    .replace("−","-");
+
+
+  if(!s){
+    return null;
+  }
+
+
+  if(!s.includes("x")){
+
+    const coefficient = Number(s);
+
+    if(!Number.isFinite(coefficient)){
+      return null;
+    }
+
+    return {
+      coefficient,
+      power:0
+    };
+
+  }
+
+
+  const pieces = s.split("x");
+
+  let coefficientText = pieces[0];
+
+  let coefficient;
+
+  if(coefficientText === "" || coefficientText === "+"){
+    coefficient = 1;
+  }else if(coefficientText === "-"){
+    coefficient = -1;
+  }else{
+    coefficient = Number(coefficientText);
+  }
+
+
+  if(!Number.isFinite(coefficient)){
+    return null;
+  }
+
+
+  let power = 1;
+
+
+  if(pieces[1]){
+
+    if(!pieces[1].startsWith("^")){
+      return null;
+    }
+
+    power = Number(pieces[1].slice(1));
+
+    if(!Number.isInteger(power) || power < 0){
+      return null;
+    }
+
+  }
+
+
+  return {
+    coefficient,
+    power
+  };
+
+}
+
+
+function formatMonomial(term){
+
+  if(term.coefficient === 0){
+    return "0";
+  }
+
+
+  const negative =
+    term.coefficient < 0;
+
+
+  const absoluteCoefficient =
+    Math.abs(term.coefficient);
+
+
+  let coefficientText;
+
+
+  if(term.power === 0){
+
+    coefficientText =
+      String(absoluteCoefficient);
+
+  }else{
+
+    coefficientText =
+      absoluteCoefficient === 1
+      ? ""
+      : String(absoluteCoefficient);
+
+  }
+
+
+  let variableText = "";
+
+
+  if(term.power === 1){
+
+    variableText = "x";
+
+  }else if(term.power > 1){
+
+    variableText = `x^${term.power}`;
+
+  }
+
+
+  return (
+    (negative ? "-" : "") +
+    coefficientText +
+    variableText
+  );
+
+}
+
+
+function multiplyTerms(a,b){
+
+  const first = parseMonomial(a);
+  const second = parseMonomial(b);
+
+
+  if(!first || !second){
+    return "";
+  }
+
+
+  return formatMonomial({
+
+    coefficient:
+      first.coefficient *
+      second.coefficient,
+
+    power:
+      first.power +
+      second.power
+
+  });
+
+}
+
+
+function expectedProducts(){
+
+  if(mode === "whole"){
+
+    const left1 =
+      numberValue($("wLeft1").value);
+
+    const left2 =
+      numberValue($("wLeft2").value);
+
+    const top1 =
+      numberValue($("wTop1").value);
+
+    const top2 =
+      numberValue($("wTop2").value);
+
+
+    if(
+      [left1,left2,top1,top2]
+      .some(v => v === null)
+    ){
+      return null;
+    }
+
+
+    return [
+
+      String(left1 * top1),
+
+      String(left1 * top2),
+
+      String(left2 * top1),
+
+      String(left2 * top2)
+
+    ];
+
+  }
+
+
+  const results = [
+
+    multiplyTerms(
+      $("pLeft1").value,
+      $("pTop1").value
+    ),
+
+    multiplyTerms(
+      $("pLeft1").value,
+      $("pTop2").value
+    ),
+
+    multiplyTerms(
+      $("pLeft2").value,
+      $("pTop1").value
+    ),
+
+    multiplyTerms(
+      $("pLeft2").value,
+      $("pTop2").value
+    )
+
+  ];
+
+
+  return results.every(Boolean)
+    ? results
+    : null;
+
+}
+
+
+function activeCells(){
+
+  const ids =
+    mode === "whole"
+
+    ? [
+      "wCell11",
+      "wCell12",
+      "wCell21",
+      "wCell22"
+    ]
+
+    : [
+      "pCell11",
+      "pCell12",
+      "pCell21",
+      "pCell22"
+    ];
+
+
+  return ids.map(id => $(id));
+
+}
+
+
+$("fillProducts").addEventListener("click",() => {
+
+  const expected =
+    expectedProducts();
+
+
+  const status =
+    mode === "whole"
+    ? $("wholeStatus")
+    : $("polyStatus");
+
+
+  if(!expected){
+
+    status.textContent =
+      "Enter valid factor parts first.";
+
+    return;
+
+  }
+
+
+  activeCells().forEach((cell,index) => {
+
+    cell.value =
+      expected[index];
+
+  });
+
+
+  status.textContent =
+    "Products filled.";
+
+});
+
+
+$("checkProducts").addEventListener("click",() => {
+
+  const expected =
+    expectedProducts();
+
+
+  const status =
+    mode === "whole"
+    ? $("wholeStatus")
+    : $("polyStatus");
+
+
+  if(!expected){
+
+    status.textContent =
+      "Enter valid factor parts first.";
+
+    return;
+
+  }
+
+
+  let correct = 0;
+
+
+  activeCells().forEach((cell,index) => {
+
+    const answer =
+      clean(cell.value)
+      .replace(/\s+/g,"")
+      .replace("−","-");
+
+
+    const target =
+      expected[index]
+      .replace(/\s+/g,"");
+
+
+    const isCorrect =
+      answer === target;
+
+
+    cell.style.borderColor =
+      isCorrect
+      ? "#7eb894"
+      : "#d58b9b";
+
+
+    cell.style.boxShadow =
+      isCorrect
+      ? "0 0 0 3px rgba(126,184,148,.18)"
+      : "0 0 0 3px rgba(213,139,155,.16)";
+
+
+    if(isCorrect){
+      correct++;
+    }
+
+  });
+
+
+  status.textContent =
+    `${correct} of 4 partial products correct.`;
+
+});
+
+
+$("clearProducts").addEventListener("click",() => {
+
+  activeCells().forEach(cell => {
+
+    cell.value = "";
+    cell.style.borderColor = "";
+    cell.style.boxShadow = "";
+
+  });
+
+
+  if(mode === "whole"){
+    $("wholeStatus").textContent = "";
+  }else{
+    $("polyStatus").textContent = "";
+  }
+
+});
+
+
+function updateGrid(){
+
+  const visible =
+    $("gridToggle").checked;
+
+
+  $("wholeModel").classList.toggle(
+    "show-grid",
+    visible
+  );
+
+
+  $("polyModel").classList.toggle(
+    "show-grid",
+    visible && mode === "poly"
+  );
+
+}
+
+
+$("gridToggle").addEventListener(
+  "change",
+  updateGrid
+);
+
+
+function resizeGrid(){
+
+  const x =
+    $("gridX").value;
+
+  const y =
+    $("gridY").value;
+
+
+  document.querySelectorAll(".grid-overlay")
+  .forEach(grid => {
+
+    grid.style.setProperty(
+      "--grid-x",
+      `${x}px`
+    );
+
+    grid.style.setProperty(
+      "--grid-y",
+      `${y}px`
+    );
+
+  });
+
+}
+
+
+$("gridX").addEventListener(
+  "input",
+  resizeGrid
+);
+
+
+$("gridY").addEventListener(
+  "input",
+  resizeGrid
+);
+
+
+updateWhole();
+updatePoly();
+resizeGrid();
+
+</script>
+
+</body>
+</html>
