@@ -1,1213 +1,1174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interactive Area Model</title>
-
-<style>
-:root{
-  --bg:#f8f7fb;
-  --card:#ffffff;
-  --text:#2f3142;
-  --muted:#6e7287;
-  --line:#d9d8e4;
-  --accent:#8fa8d8;
-  --pink:#f0b9c7;
-  --green:#b8d8c6;
-  --yellow:#f3d7a3;
-  --shadow:0 14px 34px rgba(67,72,96,.09);
-  --radius:22px;
-}
-
-*{box-sizing:border-box}
-
-body{
-  margin:0;
-  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
-  color:var(--text);
-  background:var(--bg);
-  min-height:100vh;
-}
-
-.app{
-  max-width:1180px;
-  margin:auto;
-  padding:28px 18px 44px;
-}
-
-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:18px;
-  margin-bottom:20px;
-}
-
-h1{
-  margin:0;
-  font-size:clamp(1.8rem,3vw,2.7rem);
-  letter-spacing:-.04em;
-}
-
-.subtitle{
-  margin:8px 0 0;
-  color:var(--muted);
-  max-width:700px;
-}
-
-.mode-switch{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
-
-button,input{
-  font:inherit;
-}
-
-button{
-  border:0;
-  cursor:pointer;
-}
-
-.pill{
-  border-radius:999px;
-  padding:10px 15px;
-  background:#ececf4;
-  font-weight:700;
-}
-
-.pill.active{
-  background:var(--text);
-  color:white;
-}
-
-.layout{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 320px;
-  gap:20px;
-  align-items:start;
-}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--line);
-  box-shadow:var(--shadow);
-  border-radius:var(--radius);
-}
-
-.workspace-card{
-  padding:22px;
-  overflow:visible;
-}
-
-.side-card{
-  padding:20px;
-  position:sticky;
-  top:18px;
-}
-
-.mode-panel{display:none}
-.mode-panel.active{display:block}
-
-.model-stage{
-  display:flex;
-  justify-content:center;
-  overflow:auto;
-  padding:18px 10px 10px;
-}
-
-.area-model{
-  display:grid;
-  grid-template-columns:90px repeat(2,minmax(150px,1fr));
-  grid-template-rows:64px repeat(2,minmax(140px,1fr));
-  width:min(100%,760px);
-  min-width:590px;
-  gap:0;
-}
-
-.corner{
-  background:transparent;
-}
-
-.edge{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:8px;
-  background:#f6f4fa;
-}
-
-.edge.top{
-  border:1px solid var(--line);
-  border-bottom:0;
-}
-
-.edge.left{
-  border:1px solid var(--line);
-  border-right:0;
-}
-
-.edge.top.first{
-  border-top-left-radius:14px;
-}
-
-.edge.top.last{
-  border-top-right-radius:14px;
-}
-
-.edge.left.last{
-  border-bottom-left-radius:14px;
-}
-
-.edge-input{
-  width:100%;
-  height:44px;
-  min-width:0;
-  padding:8px 10px;
-  border:1px solid #cfcfdb;
-  border-radius:10px;
-  background:white;
-  text-align:center;
-  font-weight:800;
-  font-size:1.05rem;
-  color:var(--text);
-  outline:none;
-}
-
-.edge-input:focus,
-.cell-input:focus{
-  border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(143,168,216,.2);
-}
-
-.cell{
-  position:relative;
-  min-height:140px;
-  border:1px solid rgba(88,92,112,.18);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-}
-
-.cell.blue{
-  background:rgba(143,168,216,.42);
-}
-
-.cell.pink{
-  background:rgba(240,185,199,.42);
-}
-
-.cell.green{
-  background:rgba(184,216,198,.48);
-}
-
-.cell.yellow{
-  background:rgba(243,215,163,.48);
-}
-
-.cell.bottom-right{
-  border-bottom-right-radius:14px;
-}
-
-.cell-input{
-  position:relative;
-  z-index:3;
-  width:78%;
-  min-width:110px;
-  max-width:190px;
-  min-height:46px;
-  padding:9px 10px;
-  border:1px solid rgba(92,96,120,.25);
-  border-radius:11px;
-  background:rgba(255,255,255,.93);
-  text-align:center;
-  font-size:1.08rem;
-  font-weight:800;
-  color:var(--text);
-  outline:none;
-}
-
-.product-label{
-  position:absolute;
-  left:8px;
-  bottom:7px;
-  z-index:2;
-  padding:3px 6px;
-  border-radius:6px;
-  background:rgba(255,255,255,.6);
-  font-size:.75rem;
-  font-weight:800;
-}
-
-.grid-overlay{
-  position:absolute;
-  inset:0;
-  z-index:1;
-  pointer-events:none;
-  display:none;
-  opacity:.45;
-  background-image:
-    linear-gradient(to right,rgba(66,70,87,.25) 1px,transparent 1px),
-    linear-gradient(to bottom,rgba(66,70,87,.25) 1px,transparent 1px);
-  background-size:var(--grid-x,24px) var(--grid-y,24px);
-}
-
-.show-grid .grid-overlay{
-  display:block;
-}
-
-.equation-output{
-  margin-top:18px;
-  min-height:54px;
-  padding:14px 16px;
-  border-radius:16px;
-  background:#f2f2f7;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  font-weight:800;
-}
-
-.controls{
-  display:grid;
-  gap:14px;
-  margin-top:14px;
-}
-
-.toggle-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:15px;
-  padding:12px;
-  border:1px solid var(--line);
-  border-radius:14px;
-}
-
-.toggle-copy small{
-  display:block;
-  color:var(--muted);
-  margin-top:3px;
-}
-
-.switch{
-  position:relative;
-  width:48px;
-  height:28px;
-  flex-shrink:0;
-}
-
-.switch input{
-  opacity:0;
-  width:0;
-  height:0;
-}
-
-.slider{
-  position:absolute;
-  inset:0;
-  background:#d8d9e3;
-  border-radius:999px;
-}
-
-.slider:before{
-  content:"";
-  position:absolute;
-  width:22px;
-  height:22px;
-  left:3px;
-  top:3px;
-  background:white;
-  border-radius:50%;
-  transition:.2s;
-}
-
-.switch input:checked + .slider{
-  background:var(--accent);
-}
-
-.switch input:checked + .slider:before{
-  transform:translateX(20px);
-}
-
-.grid-resizer{
-  padding:14px;
-  border:1px solid var(--line);
-  border-radius:16px;
-  background:#fbfbfd;
-}
-
-.grid-resizer h4{
-  margin:0 0 10px;
-}
-
-.range-row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-top:8px;
-}
-
-.range-row label{
-  width:70px;
-  font-size:.85rem;
-}
-
-.range-row input{
-  flex:1;
-}
-
-.primary,
-.secondary{
-  width:100%;
-  padding:12px;
-  border-radius:14px;
-  font-weight:800;
-}
-
-.primary{
-  background:var(--text);
-  color:white;
-}
-
-.secondary{
-  background:#ececf4;
-  color:var(--text);
-}
-
-.status{
-  margin-top:12px;
-  min-height:20px;
-  color:var(--muted);
-}
-
-@media(max-width:900px){
-  .layout{
-    grid-template-columns:1fr;
-  }
-
-  .side-card{
-    position:static;
-  }
-
-  header{
-    flex-direction:column;
-  }
-}
-
-@media(max-width:620px){
-  .app{
-    padding:18px 10px;
-  }
-
-  .workspace-card,
-  .side-card{
-    padding:15px;
-  }
-
-  .area-model{
-    grid-template-columns:82px repeat(2,170px);
-    grid-template-rows:66px repeat(2,150px);
-  }
-
-  .edge-input{
-    height:46px;
-  }
-
-  .cell-input{
-    width:82%;
-    min-width:118px;
-  }
-}
-</style>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Universal Area Model Workspace - Algebra II</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght=400;500&amp;family=Inter:wght=300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .math-font {
+            font-family: 'Fira Code', monospace;
+        }
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+        .touch-action-none {
+            touch-action: none;
+        }
+        .area-model-inner-border {
+            position: absolute;
+            left: calc((100% - 24px) / 3 + 2px);
+            top: calc((100% - 24px) / 3 + 2px);
+            width: calc(((100% - 24px) / 3) * 2 + 32px);
+            height: calc(((100% - 24px) / 3) * 2 + 32px);
+            border: 2px solid rgb(100 116 139);
+            pointer-events: none;
+            z-index: 20;
+        }
+        .area-model-inner-border::before,
+        .area-model-inner-border::after {
+            content: '';
+            position: absolute;
+            background: rgb(148 163 184);
+        }
+        .area-model-inner-border::before {
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 1px;
+            transform: translateX(-0.5px);
+        }
+        .area-model-inner-border::after {
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            transform: translateY(-0.5px);
+        }
+        .custom-scrollbar {
+            scrollbar-width: auto;
+            scrollbar-color: rgb(148 163 184) rgb(226 232 240);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgb(226 232 240);
+            border-radius: 999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgb(148 163 184);
+            border: 2px solid rgb(226 232 240);
+            border-radius: 999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgb(100 116 139);
+        }
+        .editable-model-value {
+            min-width: 3.5rem;
+            min-height: 2.25rem;
+            padding: 0.15rem 0.25rem;
+            border-radius: 0.375rem;
+            outline: none;
+            cursor: text;
+            white-space: nowrap;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .editable-model-value:empty::before {
+            content: attr(data-placeholder);
+            color: rgb(148 163 184);
+            font-weight: 500;
+            font-size: 0.75rem;
+        }
+        .editable-model-value:focus {
+            box-shadow: 0 0 0 2px rgb(99 102 241 / .45);
+            background: rgb(255 255 255 / .95);
+        }
+        .floating-tool-window {
+            position: fixed;
+            display: none;
+            flex-direction: column;
+            box-sizing: border-box;
+            min-width: 280px;
+            max-width: calc(100vw - 24px);
+            max-height: calc(100vh - 110px);
+            background: white;
+            border: 2px solid rgb(203 213 225);
+            border-radius: 16px;
+            box-shadow: 0 22px 55px rgb(15 23 42 / .24);
+            overflow: hidden;
+            resize: both;
+            z-index: 160;
+        }
+        .floating-tool-window.is-open {
+            display: flex;
+        }
+        .floating-tool-window-header {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            padding: .6rem .75rem;
+            border-bottom: 1px solid rgb(226 232 240);
+            background: rgba(248,250,252,.985);
+            cursor: move;
+            user-select: none;
+            touch-action: none;
+        }
+        .floating-tool-window-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: auto;
+            padding: .75rem;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+        }
+        /* Sticky Keyboard styles */
+        #math-keyboard {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgb(241 245 249);
+            border-top: 2px solid rgb(203 213 225);
+            box-shadow: 0 -8px 32px rgb(15 23 42 / .15);
+            z-index: 250;
+            transform: translateY(100%);
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #math-keyboard.is-open {
+            transform: translateY(0);
+        }
+        .keyboard-btn {
+            background: white;
+            border: 1px solid rgb(203 213 225);
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1.15rem;
+            transition: all 0.12s;
+            user-select: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .keyboard-btn:hover {
+            background: rgb(248 250 252);
+        }
+        .keyboard-btn:active {
+            background: rgb(226 232 240);
+            transform: scale(0.96);
+        }
+        .keyboard-btn.action-btn {
+            background: rgb(226 232 240);
+            font-size: 0.95rem;
+        }
+        .keyboard-btn.operator-btn {
+            background: rgb(219 234 254);
+            color: rgb(29 78 216);
+            border-color: rgb(191 219 254);
+        }
+        .keyboard-btn.variable-btn {
+            background: rgb(254 243 199);
+            color: rgb(180 83 9);
+            border-color: rgb(253 230 138);
+        }
+    </style>
 </head>
-
-<body>
-
-<div class="app">
-
-<header>
-  <div>
-    <h1>Interactive Area Model</h1>
-    <p class="subtitle">
-      Build whole-number and polynomial multiplication visually.
-      Enter factor parts on the edges and partial products inside the model.
-    </p>
-  </div>
-
-  <div class="mode-switch">
-    <button class="pill active" data-mode="whole">Whole Numbers</button>
-    <button class="pill" data-mode="poly">Polynomials</button>
-  </div>
-</header>
-
-<div class="layout">
-
-<main class="card workspace-card">
-
-<section id="wholePanel" class="mode-panel active">
-
-<h2>Whole Number Workspace</h2>
-
-<div class="model-stage">
-
-<div id="wholeModel" class="area-model">
-
-<div class="corner"></div>
-
-<div class="edge top first">
-<input id="wTop1" class="edge-input" placeholder="10">
-</div>
-
-<div class="edge top last">
-<input id="wTop2" class="edge-input" placeholder="1">
-</div>
-
-<div class="edge left">
-<input id="wLeft1" class="edge-input" placeholder="20">
-</div>
-
-<div class="cell blue">
-<div class="grid-overlay"></div>
-<input id="wCell11" class="cell-input" placeholder="product">
-<span id="wLabel11" class="product-label">20 × 10</span>
-</div>
-
-<div class="cell pink">
-<div class="grid-overlay"></div>
-<input id="wCell12" class="cell-input" placeholder="product">
-<span id="wLabel12" class="product-label">20 × 1</span>
-</div>
-
-<div class="edge left last">
-<input id="wLeft2" class="edge-input" placeholder="3">
-</div>
-
-<div class="cell green">
-<div class="grid-overlay"></div>
-<input id="wCell21" class="cell-input" placeholder="product">
-<span id="wLabel21" class="product-label">3 × 10</span>
-</div>
-
-<div class="cell yellow bottom-right">
-<div class="grid-overlay"></div>
-<input id="wCell22" class="cell-input" placeholder="product">
-<span id="wLabel22" class="product-label">3 × 1</span>
-</div>
-
-</div>
-</div>
-
-<div id="wholeEquation" class="equation-output">
-Enter factor parts to build the model.
-</div>
-
-<div id="wholeStatus" class="status"></div>
-
-</section>
-
-
-<section id="polyPanel" class="mode-panel">
-
-<h2>Polynomial Workspace</h2>
-
-<div class="model-stage">
-
-<div id="polyModel" class="area-model">
-
-<div class="corner"></div>
-
-<div class="edge top first">
-<input id="pTop1" class="edge-input" value="x">
-</div>
-
-<div class="edge top last">
-<input id="pTop2" class="edge-input" value="3">
-</div>
-
-<div class="edge left">
-<input id="pLeft1" class="edge-input" value="x">
-</div>
-
-<div class="cell blue">
-<div class="grid-overlay"></div>
-<input id="pCell11" class="cell-input" placeholder="product">
-<span id="pLabel11" class="product-label">x × x</span>
-</div>
-
-<div class="cell pink">
-<div class="grid-overlay"></div>
-<input id="pCell12" class="cell-input" placeholder="product">
-<span id="pLabel12" class="product-label">x × 3</span>
-</div>
-
-<div class="edge left last">
-<input id="pLeft2" class="edge-input" value="2">
-</div>
-
-<div class="cell green">
-<div class="grid-overlay"></div>
-<input id="pCell21" class="cell-input" placeholder="product">
-<span id="pLabel21" class="product-label">2 × x</span>
-</div>
-
-<div class="cell yellow bottom-right">
-<div class="grid-overlay"></div>
-<input id="pCell22" class="cell-input" placeholder="product">
-<span id="pLabel22" class="product-label">2 × 3</span>
-</div>
-
-</div>
-</div>
-
-<div id="polyEquation" class="equation-output">
-(x + 2)(x + 3)
-</div>
-
-<div id="polyStatus" class="status"></div>
-
-</section>
-
-</main>
-
-
-<aside class="card side-card">
-
-<h3>Model Controls</h3>
-
-<div class="controls">
-
-<div class="toggle-row">
-
-<div class="toggle-copy">
-<strong>Show unit squares</strong>
-<small>
-Display a unit-square grid inside the area model.
-</small>
-</div>
-
-<label class="switch">
-<input id="gridToggle" type="checkbox">
-<span class="slider"></span>
-</label>
-
-</div>
-
-
-<div class="grid-resizer">
-
-<h4>Grid size</h4>
-
-<div class="range-row">
-<label>Columns</label>
-<input id="gridX" type="range" min="12" max="48" value="24">
-</div>
-
-<div class="range-row">
-<label>Rows</label>
-<input id="gridY" type="range" min="12" max="48" value="24">
-</div>
-
-</div>
-
-
-<button id="fillProducts" class="primary">
-Fill Products
-</button>
-
-<button id="checkProducts" class="secondary">
-Check My Work
-</button>
-
-<button id="clearProducts" class="secondary">
-Clear Products
-</button>
-
-</div>
-
-</aside>
-
-</div>
-</div>
-
-
-<script>
-
-const $ = id => document.getElementById(id);
-
-let mode = "whole";
-
-
-document.querySelectorAll("[data-mode]").forEach(button => {
-
-  button.addEventListener("click", () => {
-
-    mode = button.dataset.mode;
-
-    document.querySelectorAll("[data-mode]").forEach(b => {
-      b.classList.toggle("active", b === button);
-    });
-
-    $("wholePanel").classList.toggle("active", mode === "whole");
-    $("polyPanel").classList.toggle("active", mode === "poly");
-
-    updateGrid();
-
-  });
-
-});
-
-
-function clean(value){
-  return (value || "").trim();
-}
-
-
-function numberValue(value){
-
-  if(clean(value) === ""){
-    return null;
-  }
-
-  const n = Number(value);
-
-  return Number.isFinite(n) ? n : null;
-
-}
-
-
-function updateWhole(){
-
-  const left1 = clean($("wLeft1").value);
-  const left2 = clean($("wLeft2").value);
-
-  const top1 = clean($("wTop1").value);
-  const top2 = clean($("wTop2").value);
-
-
-  $("wLabel11").textContent =
-    `${left1 || "□"} × ${top1 || "□"}`;
-
-  $("wLabel12").textContent =
-    `${left1 || "□"} × ${top2 || "□"}`;
-
-  $("wLabel21").textContent =
-    `${left2 || "□"} × ${top1 || "□"}`;
-
-  $("wLabel22").textContent =
-    `${left2 || "□"} × ${top2 || "□"}`;
-
-
-  const a = numberValue(left1);
-  const b = numberValue(left2);
-  const c = numberValue(top1);
-  const d = numberValue(top2);
-
-
-  if([a,b,c,d].every(v => v !== null)){
-
-    $("wholeEquation").textContent =
-      `(${a} + ${b}) × (${c} + ${d}) = ${(a+b)*(c+d)}`;
-
-  }else{
-
-    $("wholeEquation").textContent =
-      "Enter factor parts to build the model.";
-
-  }
-
-}
-
-
-["wLeft1","wLeft2","wTop1","wTop2"].forEach(id => {
-  $(id).addEventListener("input",updateWhole);
-});
-
-
-function updatePoly(){
-
-  const left1 = clean($("pLeft1").value);
-  const left2 = clean($("pLeft2").value);
-
-  const top1 = clean($("pTop1").value);
-  const top2 = clean($("pTop2").value);
-
-
-  $("pLabel11").textContent =
-    `${left1 || "□"} × ${top1 || "□"}`;
-
-  $("pLabel12").textContent =
-    `${left1 || "□"} × ${top2 || "□"}`;
-
-  $("pLabel21").textContent =
-    `${left2 || "□"} × ${top1 || "□"}`;
-
-  $("pLabel22").textContent =
-    `${left2 || "□"} × ${top2 || "□"}`;
-
-
-  $("polyEquation").textContent =
-    `(${left1 || "□"} + ${left2 || "□"})` +
-    `(${top1 || "□"} + ${top2 || "□"})`;
-
-}
-
-
-["pLeft1","pLeft2","pTop1","pTop2"].forEach(id => {
-  $(id).addEventListener("input",updatePoly);
-});
-
-
-function parseMonomial(value){
-
-  let s = clean(value)
-    .replace(/\s+/g,"")
-    .replace("−","-");
-
-
-  if(!s){
-    return null;
-  }
-
-
-  if(!s.includes("x")){
-
-    const coefficient = Number(s);
-
-    if(!Number.isFinite(coefficient)){
-      return null;
-    }
-
-    return {
-      coefficient,
-      power:0
-    };
-
-  }
-
-
-  const pieces = s.split("x");
-
-  let coefficientText = pieces[0];
-
-  let coefficient;
-
-  if(coefficientText === "" || coefficientText === "+"){
-    coefficient = 1;
-  }else if(coefficientText === "-"){
-    coefficient = -1;
-  }else{
-    coefficient = Number(coefficientText);
-  }
-
-
-  if(!Number.isFinite(coefficient)){
-    return null;
-  }
-
-
-  let power = 1;
-
-
-  if(pieces[1]){
-
-    if(!pieces[1].startsWith("^")){
-      return null;
-    }
-
-    power = Number(pieces[1].slice(1));
-
-    if(!Number.isInteger(power) || power < 0){
-      return null;
-    }
-
-  }
-
-
-  return {
-    coefficient,
-    power
-  };
-
-}
-
-
-function formatMonomial(term){
-
-  if(term.coefficient === 0){
-    return "0";
-  }
-
-
-  const negative =
-    term.coefficient < 0;
-
-
-  const absoluteCoefficient =
-    Math.abs(term.coefficient);
-
-
-  let coefficientText;
-
-
-  if(term.power === 0){
-
-    coefficientText =
-      String(absoluteCoefficient);
-
-  }else{
-
-    coefficientText =
-      absoluteCoefficient === 1
-      ? ""
-      : String(absoluteCoefficient);
-
-  }
-
-
-  let variableText = "";
-
-
-  if(term.power === 1){
-
-    variableText = "x";
-
-  }else if(term.power > 1){
-
-    variableText = `x^${term.power}`;
-
-  }
-
-
-  return (
-    (negative ? "-" : "") +
-    coefficientText +
-    variableText
-  );
-
-}
-
-
-function multiplyTerms(a,b){
-
-  const first = parseMonomial(a);
-  const second = parseMonomial(b);
-
-
-  if(!first || !second){
-    return "";
-  }
-
-
-  return formatMonomial({
-
-    coefficient:
-      first.coefficient *
-      second.coefficient,
-
-    power:
-      first.power +
-      second.power
-
-  });
-
-}
-
-
-function expectedProducts(){
-
-  if(mode === "whole"){
-
-    const left1 =
-      numberValue($("wLeft1").value);
-
-    const left2 =
-      numberValue($("wLeft2").value);
-
-    const top1 =
-      numberValue($("wTop1").value);
-
-    const top2 =
-      numberValue($("wTop2").value);
-
-
-    if(
-      [left1,left2,top1,top2]
-      .some(v => v === null)
-    ){
-      return null;
-    }
-
-
-    return [
-
-      String(left1 * top1),
-
-      String(left1 * top2),
-
-      String(left2 * top1),
-
-      String(left2 * top2)
-
-    ];
-
-  }
-
-
-  const results = [
-
-    multiplyTerms(
-      $("pLeft1").value,
-      $("pTop1").value
-    ),
-
-    multiplyTerms(
-      $("pLeft1").value,
-      $("pTop2").value
-    ),
-
-    multiplyTerms(
-      $("pLeft2").value,
-      $("pTop1").value
-    ),
-
-    multiplyTerms(
-      $("pLeft2").value,
-      $("pTop2").value
-    )
-
-  ];
-
-
-  return results.every(Boolean)
-    ? results
-    : null;
-
-}
-
-
-function activeCells(){
-
-  const ids =
-    mode === "whole"
-
-    ? [
-      "wCell11",
-      "wCell12",
-      "wCell21",
-      "wCell22"
-    ]
-
-    : [
-      "pCell11",
-      "pCell12",
-      "pCell21",
-      "pCell22"
-    ];
-
-
-  return ids.map(id => $(id));
-
-}
-
-
-$("fillProducts").addEventListener("click",() => {
-
-  const expected =
-    expectedProducts();
-
-
-  const status =
-    mode === "whole"
-    ? $("wholeStatus")
-    : $("polyStatus");
-
-
-  if(!expected){
-
-    status.textContent =
-      "Enter valid factor parts first.";
-
-    return;
-
-  }
-
-
-  activeCells().forEach((cell,index) => {
-
-    cell.value =
-      expected[index];
-
-  });
-
-
-  status.textContent =
-    "Products filled.";
-
-});
-
-
-$("checkProducts").addEventListener("click",() => {
-
-  const expected =
-    expectedProducts();
-
-
-  const status =
-    mode === "whole"
-    ? $("wholeStatus")
-    : $("polyStatus");
-
-
-  if(!expected){
-
-    status.textContent =
-      "Enter valid factor parts first.";
-
-    return;
-
-  }
-
-
-  let correct = 0;
-
-
-  activeCells().forEach((cell,index) => {
-
-    const answer =
-      clean(cell.value)
-      .replace(/\s+/g,"")
-      .replace("−","-");
-
-
-    const target =
-      expected[index]
-      .replace(/\s+/g,"");
-
-
-    const isCorrect =
-      answer === target;
-
-
-    cell.style.borderColor =
-      isCorrect
-      ? "#7eb894"
-      : "#d58b9b";
-
-
-    cell.style.boxShadow =
-      isCorrect
-      ? "0 0 0 3px rgba(126,184,148,.18)"
-      : "0 0 0 3px rgba(213,139,155,.16)";
-
-
-    if(isCorrect){
-      correct++;
-    }
-
-  });
-
-
-  status.textContent =
-    `${correct} of 4 partial products correct.`;
-
-});
-
-
-$("clearProducts").addEventListener("click",() => {
-
-  activeCells().forEach(cell => {
-
-    cell.value = "";
-    cell.style.borderColor = "";
-    cell.style.boxShadow = "";
-
-  });
-
-
-  if(mode === "whole"){
-    $("wholeStatus").textContent = "";
-  }else{
-    $("polyStatus").textContent = "";
-  }
-
-});
-
-
-function updateGrid(){
-
-  const visible =
-    $("gridToggle").checked;
-
-
-  $("wholeModel").classList.toggle(
-    "show-grid",
-    visible
-  );
-
-
-  $("polyModel").classList.toggle(
-    "show-grid",
-    visible && mode === "poly"
-  );
-
-}
-
-
-$("gridToggle").addEventListener(
-  "change",
-  updateGrid
-);
-
-
-function resizeGrid(){
-
-  const x =
-    $("gridX").value;
-
-  const y =
-    $("gridY").value;
-
-
-  document.querySelectorAll(".grid-overlay")
-  .forEach(grid => {
-
-    grid.style.setProperty(
-      "--grid-x",
-      `${x}px`
-    );
-
-    grid.style.setProperty(
-      "--grid-y",
-      `${y}px`
-    );
-
-  });
-
-}
-
-
-$("gridX").addEventListener(
-  "input",
-  resizeGrid
-);
-
-
-$("gridY").addEventListener(
-  "input",
-  resizeGrid
-);
-
-
-updateWhole();
-updatePoly();
-resizeGrid();
-
-</script>
-
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased pb-44">
+
+    <!-- Top Navigation Multi-Mode Navbar -->
+    <header class="border-b border-slate-200 bg-white sticky top-0 z-50 shadow-sm" id="site-header">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-indigo-600/10 text-indigo-600 rounded-xl border border-indigo-500/20">
+                    <i class="fa-solid fa-square-root-variable text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900">Algebra II Universal Area Model</h1>
+                    <p class="text-[10px] text-slate-500">6 Interactive Modes Powered by One Geometric Tool</p>
+                </div>
+            </div>
+
+            <!-- Navbar Mode Selector Tabs -->
+            <nav class="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200" id="mode-tab-navbar">
+                <button class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-900 shadow-sm" data-mode="poly-factoring">Polynomial Factoring</button>
+                <button class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900" data-mode="int-mult">Integer Mult</button>
+                <button class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900" data-mode="int-div">Integer Div</button>
+                <button class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900" data-mode="poly-mult">Polynomial Mult</button>
+                <button class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900" data-mode="poly-div">Polynomial Div</button>
+                <button class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900" data-mode="complete-square">Complete Square</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Workspace Panel layout -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- LEFT COLUMN: Instruction slide-out Drawer (5 columns) -->
+        <section class="lg:col-span-5 flex flex-col gap-6" id="left-controls-panel">
+
+            <!-- Global Mode Instructions Card -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-md" id="global-instructions-card">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                    <h3 class="text-xs uppercase font-extrabold tracking-widest text-slate-400">Current Task</h3>
+                    <span class="px-2.5 py-0.5 bg-indigo-100 text-indigo-700 font-extrabold tracking-wide uppercase text-[9px] rounded-full border border-indigo-200" id="active-mode-badge">Polynomial Factoring</span>
+                </div>
+                <div id="mode-narrative-container" class="text-xs sm:text-sm text-slate-600 space-y-3">
+                    <!-- Loaded dynamically via script -->
+                </div>
+            </div>
+
+            <!-- GCF Selection Pre-scaffolding (Factoring Mode Only) -->
+            <div class="bg-white border border-amber-200 rounded-2xl p-6 shadow-md hidden" id="gcf-scaffolding-card">
+                <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-900 mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-compress text-amber-500"></i> Optional: Factor Out a Common GCF
+                </h3>
+                <div class="bg-amber-50 p-3 rounded-xl border border-amber-100 flex justify-around text-xs font-mono mb-4 text-slate-700">
+                    <span id="gcf-label-a">a = 4</span>
+                    <span id="gcf-label-b">b = -42</span>
+                    <span id="gcf-label-c">c = 80</span>
+                </div>
+                <div class="flex flex-wrap gap-2 justify-center mb-3" id="gcf-options-container">
+                    <!-- Populated dynamically -->
+                </div>
+                <div class="text-xs text-slate-500 text-center" id="gcf-explanation">Select a common GCF factor to divide and simplify.</div>
+            </div>
+
+            <!-- Interactive Staging Controls Card -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-md" id="problem-setup-card">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                    <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-sliders text-indigo-500"></i> Setup Expression
+                    </h3>
+                    <button class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5" id="btn-practice" type="button">
+                        <i class="fa-solid fa-dice"></i> Generate Practice
+                    </button>
+                </div>
+
+                <div class="flex flex-col gap-6" id="problem-setup-body">
+                    <!-- Slider a -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-black uppercase tracking-wide text-slate-700" id="label-num-a" for="num-a">coefficient a</label>
+                                <div class="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                    <input class="w-3.5 h-3.5 text-indigo-600 bg-white border-slate-300 rounded focus:ring-indigo-500 cursor-pointer" id="force-a-one" type="checkbox"/>
+                                    <label for="force-a-one" class="text-[9px] font-black text-slate-600 cursor-pointer select-none">Force a=1</label>
+                                </div>
+                            </div>
+                            <input class="w-14 px-1.5 py-0.5 text-sm text-center font-mono font-bold bg-slate-50 border border-slate-300 rounded-md text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" id="num-a" type="number" value="2"/>
+                        </div>
+                        <div class="relative flex items-center" id="slider-container-a">
+                            <input class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 relative z-10" id="slider-a" max="50" min="-50" step="1" type="range" value="2"/>
+                        </div>
+                    </div>
+
+                    <!-- Slider b -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-black uppercase tracking-wide text-slate-700" id="label-num-b" for="num-b">coefficient b</label>
+                            <input class="w-14 px-1.5 py-0.5 text-sm text-center font-mono font-bold bg-slate-50 border border-slate-300 rounded-md text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500" id="num-b" type="number" value="-21"/>
+                        </div>
+                        <div class="relative flex items-center">
+                            <input class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 relative z-10" id="slider-b" max="50" min="-50" step="1" type="range" value="-21"/>
+                        </div>
+                    </div>
+
+                    <!-- Slider c -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-black uppercase tracking-wide text-slate-700" id="label-num-c" for="num-c">coefficient c</label>
+                            <input class="w-14 px-1.5 py-0.5 text-sm text-center font-mono font-bold bg-slate-50 border border-slate-300 rounded-md text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500" id="num-c" type="number" value="40"/>
+                        </div>
+                        <div class="relative flex items-center">
+                            <input class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-600 relative z-10" id="slider-c" max="50" min="-50" step="1" type="range" value="40"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Movable Auxiliary Tools Buttons -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Movable Tools:</span>
+                <div class="flex gap-2">
+                    <button class="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold shadow-sm" id="btn-tool-calculator" type="button">
+                        <i class="fa-solid fa-calculator mr-1"></i> Calculator
+                    </button>
+                    <button class="px-3.5 py-2 rounded-lg border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold shadow-sm" id="btn-tool-chart" type="button">
+                        <i class="fa-solid fa-table-cells mr-1"></i> Multiplication Chart
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: FIXED WORKSPACE / 2X2 AREA MODEL (7 Columns) -->
+        <section class="lg:col-span-7 flex flex-col gap-6 lg:sticky lg:top-24 order-1 lg:order-last" id="right-workspace-panel">
+
+            <!-- Polynomial Display Header -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-md flex flex-col items-center justify-center gap-2">
+                <span class="text-[10px] uppercase font-extrabold tracking-widest text-slate-400" id="workspace-equation-label">Active Expression Target</span>
+                <div id="equation-display" class="text-2xl sm:text-3xl font-black text-slate-900 math-font py-1 text-center">
+                    2x² - 21x + 40
+                </div>
+            </div>
+
+            <!-- Draggable term cards container (Used in placement stage of factoring) -->
+            <div id="term-cards-container" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center gap-3 hidden">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wide" id="term-cards-heading">Place terms into the Model</span>
+                <div class="flex gap-4">
+                    <div id="card-ax2" draggable="true" class="px-5 py-2.5 bg-blue-600 text-white font-mono font-bold rounded-xl cursor-grab active:cursor-grabbing shadow-sm hover:bg-blue-700 active:scale-95 transition-all text-sm select-none touch-action-none">2x²</div>
+                    <div id="card-c" draggable="true" class="px-5 py-2.5 bg-purple-600 text-white font-mono font-bold rounded-xl cursor-grab active:cursor-grabbing shadow-sm hover:bg-purple-700 active:scale-95 transition-all text-sm select-none touch-action-none">40</div>
+                </div>
+                <p class="text-[10px] text-slate-400 italic text-center">Drag cards to their matching cells, or click them to snap them in!</p>
+            </div>
+
+            <!-- Stationary 2x2 Area Model Grid -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-md flex flex-col items-center justify-center relative">
+
+                <div class="flex w-full items-center justify-between mb-6 border-b border-slate-100 pb-2">
+                    <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-table-cells-large text-purple-500"></i> Area Model Grid
+                    </h3>
+                    <span id="active-status-pill" class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-bold tracking-wide uppercase text-[9px] rounded-full border border-emerald-200">Interactive Workspace</span>
+                </div>
+
+                <!-- Grid of GCFs and Area Model cells -->
+                <div class="relative grid grid-cols-3 grid-rows-3 gap-3 w-80 h-80 text-center text-sm font-bold select-none" id="area-model-grid">
+
+                    <!-- Top-Left Spacer -->
+                    <div></div>
+
+                    <!-- Col 1 GCF border -->
+                    <div id="gcf-col1" class="flex flex-col items-center justify-center text-blue-600 border border-dashed border-slate-300 rounded-2xl bg-slate-50 transition-all font-mono text-base border-2 cursor-pointer hover:bg-blue-50/50">
+                        <span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Col 1</span>
+                    </div>
+
+                    <!-- Col 2 GCF border -->
+                    <div id="gcf-col2" class="flex flex-col items-center justify-center text-blue-600 border border-dashed border-slate-300 rounded-2xl bg-slate-50 transition-all font-mono text-base border-2 cursor-pointer hover:bg-blue-50/50">
+                        <span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Col 2</span>
+                    </div>
+
+                    <!-- Row 1 GCF border -->
+                    <div id="gcf-row1" class="flex flex-col items-center justify-center text-emerald-600 border border-dashed border-slate-300 rounded-2xl bg-slate-50 transition-all font-mono text-base border-2 cursor-pointer hover:bg-emerald-50/50">
+                        <span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Row 1</span>
+                    </div>
+
+                    <!-- Cell TL: ax² -->
+                    <div id="cell-tl" class="flex flex-col items-center justify-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-900 font-mono transition-all duration-300 relative">
+                        <span id="cell-tl-value" class="editable-model-value text-2xl font-black" contenteditable="true" data-placeholder="ax²" role="textbox" spellcheck="false"></span>
+                        <span class="text-[9px] text-slate-400 font-sans font-normal mt-1">ax²</span>
+                    </div>
+
+                    <!-- Cell TR: Mx -->
+                    <div id="cell-tr" class="flex flex-col items-center justify-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-600 font-mono transition-all duration-300 relative">
+                        <span id="cell-tr-value" class="editable-model-value text-2xl font-black" contenteditable="true" data-placeholder="Mx" role="textbox" spellcheck="false"></span>
+                        <span class="text-[9px] text-slate-400 font-sans font-normal mt-1">Mx</span>
+                    </div>
+
+                    <!-- Row 2 GCF border -->
+                    <div id="gcf-row2" class="flex flex-col items-center justify-center text-emerald-600 border border-dashed border-slate-300 rounded-2xl bg-slate-50 transition-all font-mono text-base border-2 cursor-pointer hover:bg-emerald-50/50">
+                        <span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Row 2</span>
+                    </div>
+
+                    <!-- Cell BL: Nx -->
+                    <div id="cell-bl" class="flex flex-col items-center justify-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-600 font-mono transition-all duration-300 relative">
+                        <span id="cell-bl-value" class="editable-model-value text-2xl font-black" contenteditable="true" data-placeholder="Nx" role="textbox" spellcheck="false"></span>
+                        <span class="text-[9px] text-slate-400 font-sans font-normal mt-1">Nx</span>
+                    </div>
+
+                    <!-- Cell BR: c -->
+                    <div id="cell-br" class="flex flex-col items-center justify-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-900 font-mono transition-all duration-300 relative">
+                        <span id="cell-br-value" class="editable-model-value text-2xl font-black" contenteditable="true" data-placeholder="c" role="textbox" spellcheck="false"></span>
+                        <span class="text-[9px] text-slate-400 font-sans font-normal mt-1">c</span>
+                    </div>
+
+                    <!-- Inner Grid Border Frame -->
+                    <div aria-hidden="true" class="area-model-inner-border"></div>
+                </div>
+
+                <!-- Live Evaluation Status Feed -->
+                <div id="active-alert-banner" class="w-full mt-6 p-4 rounded-xl border border-indigo-100 bg-indigo-50/50 text-xs text-center text-indigo-900 font-semibold shadow-inner">
+                    Begin typing or selecting borders to check your geometric grid balance.
+                </div>
+            </div>
+
+            <!-- Conventional Parentheses Formula Form -->
+            <div id="parenthesis-card" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-md flex flex-col items-center justify-center gap-4 hidden">
+                <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-right-to-bracket text-blue-500"></i> Write the binomial factors
+                </h3>
+                <div class="flex items-center justify-center gap-1 text-2xl font-bold math-font py-4 text-slate-400">
+                    <span id="parenthesis-gcf-prefix" class="text-slate-950 hidden font-bold mr-1"></span>
+                    <span class="text-slate-950">(</span>
+                    <div id="parenthesis-factor-1" class="min-w-[110px] px-3 py-1 border-2 border-dashed border-emerald-300 rounded-xl text-center text-emerald-500 bg-emerald-50/50 text-sm select-none cursor-pointer hover:bg-emerald-50 transition-all font-mono font-bold">Row Factor</div>
+                    <span class="text-slate-950">)(</span>
+                    <div id="parenthesis-factor-2" class="min-w-[110px] px-3 py-1 border-2 border-dashed border-blue-300 rounded-xl text-center text-blue-500 bg-blue-50/50 text-base select-none cursor-pointer hover:bg-blue-50 transition-all font-mono font-bold">Col Factor</div>
+                    <span class="text-slate-950">)</span>
+                </div>
+                <p id="parenthesis-tips" class="text-xs text-slate-500 text-center leading-relaxed">
+                    Transfer the row factors and column factors into the two binomials.
+                </p>
+                <div class="hidden mt-5 p-4 rounded-xl border border-amber-200 bg-amber-50" id="further-factor-card">
+                    <p class="text-xs font-bold text-amber-800 text-center mb-3" id="further-factor-message">Hint: one or more binomial factors can be factored further.</p>
+                    <div class="flex flex-wrap gap-2 justify-center" id="further-factor-actions"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FLOATING DOCKABLE student tool windows -->
+    <!-- Tool 1: Scratch Calculator -->
+    <div aria-label="Calculator" aria-modal="false" class="floating-tool-window" id="calculator-tool-window" role="dialog">
+        <div class="floating-tool-window-header" id="calculator-tool-window-header">
+            <div class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-calculator text-slate-500"></i>Calculator
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button class="px-2 py-0.5 rounded-lg border border-slate-300 bg-white text-slate-600 text-[10px] font-extrabold hover:bg-slate-100" id="btn-reset-calculator-window" type="button" title="Reset Window Position"><i class="fa-solid fa-crosshairs"></i></button>
+                <button class="px-2 py-0.5 rounded-lg border border-slate-300 bg-white text-slate-600 font-bold hover:bg-slate-100" id="btn-close-calculator-window" type="button">×</button>
+            </div>
+        </div>
+        <div class="floating-tool-window-body">
+            <div id="tool-calculator-panel">
+                <div class="mx-auto w-full max-w-[19rem] rounded-2xl border-2 border-slate-300 bg-slate-800 p-3 shadow-md">
+                    <div class="mb-3 rounded-xl bg-slate-100 px-4 py-3 text-right overflow-hidden">
+                        <div class="text-[9px] font-bold tracking-wider text-slate-400">Calculator Output</div>
+                        <output class="block min-h-[2.25rem] font-mono text-2xl font-black text-slate-900 break-all" id="calculator-display">0</output>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2" id="calculator-keypad">
+                        <button class="h-11 rounded-lg bg-slate-500 hover:bg-slate-400 text-white font-bold" data-calc-action="clear" type="button">C</button>
+                        <button class="h-11 rounded-lg bg-slate-500 hover:bg-slate-400 text-white font-bold" data-calc-action="sign" type="button">±</button>
+                        <button class="h-11 rounded-lg bg-slate-500 hover:bg-slate-400 text-white font-bold" data-calc-action="backspace" type="button">⌫</button>
+                        <button class="h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-lg font-black" data-calc-operator="divide" type="button">÷</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="7" type="button">7</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="8" type="button">8</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="9" type="button">9</button>
+                        <button class="h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-lg font-black" data-calc-operator="multiply" type="button">×</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="4" type="button">4</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="5" type="button">5</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="6" type="button">6</button>
+                        <button class="h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-lg font-black" data-calc-operator="subtract" type="button">−</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="1" type="button">1</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="2" type="button">2</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="3" type="button">3</button>
+                        <button class="h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-lg font-black" data-calc-operator="add" type="button">+</button>
+                        <button class="col-span-2 h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="0" type="button">0</button>
+                        <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-black" data-calc-action="decimal" type="button">.</button>
+                        <button class="h-11 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-lg font-black" data-calc-action="equals" type="button">=</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tool 2: Multiplication Chart -->
+    <div aria-label="Multiplication chart" aria-modal="false" class="floating-tool-window" id="chart-tool-window" role="dialog">
+        <div class="floating-tool-window-header" id="chart-tool-window-header">
+            <div class="text-xs font-extrabold uppercase tracking-wider text-indigo-700 flex items-center gap-2">
+                <i class="fa-solid fa-table-cells"></i>Multiplication Chart
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button class="px-2 py-0.5 rounded-lg border border-slate-300 bg-white text-slate-600 text-[10px] font-extrabold hover:bg-slate-100" id="btn-reset-chart-window" type="button" title="Reset Window Position"><i class="fa-solid fa-crosshairs"></i></button>
+                <button class="px-2 py-0.5 rounded-lg border border-slate-300 bg-white text-slate-600 font-bold hover:bg-slate-100" id="btn-close-chart-window" type="button">×</button>
+            </div>
+        </div>
+        <div class="floating-tool-window-body">
+            <div id="tool-chart-panel">
+                <div class="flex flex-col sm:flex-row sm:items-end justify-center gap-3 mb-3">
+                    <label class="text-xs font-bold text-slate-700">
+                        Target product
+                        <input class="mt-1 w-full sm:w-40 px-3 py-2 text-base text-center font-mono font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" id="tool-chart-target" inputmode="numeric" placeholder="enter product" type="number"/>
+                    </label>
+                    <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm" id="btn-show-tool-chart" type="button">Show Chart</button>
+                    <button class="px-3 py-2 border border-slate-300 bg-white hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-bold" id="btn-clear-tool-chart" type="button">Clear</button>
+                </div>
+                <p class="text-[10px] text-slate-500 text-center mb-3" id="tool-chart-feedback">Enter the product to investigate.</p>
+                <div class="hidden" id="multiplication-chart-wrapper">
+                    <div class="w-full max-h-[16rem] overflow-auto custom-scrollbar border border-slate-200 rounded-xl bg-white">
+                        <div class="min-w-max p-1" id="multiplication-chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STICKY SLIDE-UP MATH KEYBOARD WITH NUMERIC INPUTS -->
+    <div id="math-keyboard" class="px-4 py-3 flex flex-col gap-2">
+        <div class="max-w-xl mx-auto w-full flex items-center justify-between border-b border-slate-300 pb-1.5 mb-1.5">
+            <span class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                <i class="fa-solid fa-keyboard text-indigo-500"></i> Math On-Screen Keypad
+            </span>
+            <button id="btn-dismiss-keyboard" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-black uppercase rounded-md transition-all">
+                <i class="fa-solid fa-chevron-down mr-1"></i>Dismiss
+            </button>
+        </div>
+
+        <!-- Keypad layouts -->
+        <div class="max-w-xl mx-auto w-full grid grid-cols-6 gap-2">
+            <!-- First Row -->
+            <button class="keyboard-btn h-10 text-sm" data-key="7">7</button>
+            <button class="keyboard-btn h-10 text-sm" data-key="8">8</button>
+            <button class="keyboard-btn h-10 text-sm" data-key="9">9</button>
+            <button class="keyboard-btn operator-btn h-10 text-sm" data-key="+">+</button>
+            <button class="keyboard-btn variable-btn h-10 text-sm" data-key="x">x</button>
+            <button class="keyboard-btn action-btn h-10 text-xs text-red-600" data-key="clear">Clear</button>
+
+            <!-- Second Row -->
+            <button class="keyboard-btn h-10 text-sm" data-key="4">4</button>
+            <button class="keyboard-btn h-10 text-sm" data-key="5">5</button>
+            <button class="keyboard-btn h-10 text-sm" data-key="6">6</button>
+            <button class="keyboard-btn operator-btn h-10 text-sm" data-key="-">−</button>
+            <button class="keyboard-btn variable-btn h-10 text-sm" data-key="x²">x²</button>
+            <button class="keyboard-btn action-btn h-10 text-xs text-slate-700" data-key="backspace">⌫</button>
+
+            <!-- Third Row -->
+            <button class="keyboard-btn h-10 text-sm" data-key="1">1</button>
+            <button class="keyboard-btn h-10 text-sm" data-key="2">2</button>
+            <button class="keyboard-btn h-10 text-sm" data-key="3">3</button>
+            <button class="keyboard-btn h-10 text-sm col-span-2" data-key="0">0</button>
+            <button class="keyboard-btn h-10 text-sm" data-key=".">.</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400 mt-auto">
+        <p>Interactive Area Model Workspace v15 — Six-Mode Pedagogical Classroom Dashboard</p>
+    </footer>
+
+    <!-- Interactive App Script -->
+    <script>
+        // State Variables
+        let currentMode = 'poly-factoring'; // 'poly-factoring', 'int-mult', 'int-div', 'poly-mult', 'poly-div', 'complete-square'
+        let activeA = 2;
+        let activeB = -21;
+        let activeC = 40;
+        let workA = 2, workB = -21, workC = 40;
+
+        let placedTL = false, placedTR = false, placedBL = false, placedBR = false;
+        let factorsM = -16, factorsN = -5; // For middle split terms
+        let pulledGCF = 1;
+        let isGCFSolved = false;
+
+        let activeInputEl = null; // Target focus elements
+
+        // DOM elements
+        const numA = document.getElementById('num-a');
+        const sliderA = document.getElementById('slider-a');
+        const numB = document.getElementById('num-b');
+        const sliderB = document.getElementById('slider-b');
+        const numC = document.getElementById('num-c');
+        const sliderC = document.getElementById('slider-c');
+        const forceAOne = document.getElementById('force-a-one');
+        const btnPractice = document.getElementById('btn-practice');
+        const labelNumB = document.getElementById('label-num-b');
+        const labelNumC = document.getElementById('label-num-c');
+
+        const equationDisplay = document.getElementById('equation-display');
+        const activeEquationLabel = document.getElementById('active-equation-label');
+        const workspaceEquationLabel = document.getElementById('workspace-equation-label');
+        const activeModeBadge = document.getElementById('active-mode-badge');
+        const modeNarrativeContainer = document.getElementById('mode-narrative-container');
+
+        const gcfScaffoldingCard = document.getElementById('gcf-scaffolding-card');
+        const gcfOptionsContainer = document.getElementById('gcf-options-container');
+        const gcfExplanation = document.getElementById('gcf-explanation');
+        const gcfLabelA = document.getElementById('gcf-label-a');
+        const gcfLabelB = document.getElementById('gcf-label-b');
+        const gcfLabelC = document.getElementById('gcf-label-c');
+
+        const termCardsContainer = document.getElementById('term-cards-container');
+        const cardAx2 = document.getElementById('card-ax2');
+        const cardC = document.getElementById('card-c');
+
+        // Spans inside Area Model grid
+        const cellTl = document.getElementById('cell-tl');
+        const cellTr = document.getElementById('cell-tr');
+        const cellBl = document.getElementById('cell-bl');
+        const cellBr = document.getElementById('cell-br');
+        const cellTlValue = document.getElementById('cell-tl-value');
+        const cellTrValue = document.getElementById('cell-tr-value');
+        const cellBlValue = document.getElementById('cell-bl-value');
+        const cellBrValue = document.getElementById('cell-br-value');
+
+        const gcfRow1 = document.getElementById('gcf-row1');
+        const gcfRow2 = document.getElementById('gcf-row2');
+        const gcfCol1 = document.getElementById('gcf-col1');
+        const gcfCol2 = document.getElementById('gcf-col2');
+
+        const activeAlertBanner = document.getElementById('active-alert-banner');
+        const parenthesisCard = document.getElementById('parenthesis-card');
+        const parenthesisGCFPrefix = document.getElementById('parenthesis-gcf-prefix');
+        const parenthesisFactor1 = document.getElementById('parenthesis-factor-1');
+        const parenthesisFactor2 = document.getElementById('parenthesis-factor-2');
+        const parenthesisTips = document.getElementById('parenthesis-tips');
+
+        // Math Keyboard elements
+        const mathKeyboard = document.getElementById('math-keyboard');
+        const btnDismissKeyboard = document.getElementById('btn-dismiss-keyboard');
+
+        // Greatest Common Factor calculation helper
+        function getGCD(x, y) {
+            x = Math.abs(x);
+            y = Math.abs(y);
+            while (y) {
+                const temp = y;
+                y = x % y;
+                x = temp;
+            }
+            return x;
+        }
+
+        // --- Keyboard Focus Listeners ---
+        function attachKeyboardListeners() {
+            document.addEventListener('focusin', (e) => {
+                if (e.target.hasAttribute('contenteditable') || e.target.tagName === 'INPUT') {
+                    activeInputEl = e.target;
+                    mathKeyboard.classList.add('is-open');
+                }
+            });
+
+            btnDismissKeyboard.onclick = () => {
+                mathKeyboard.classList.remove('is-open');
+            };
+
+            // Keyboard insertion mapping
+            document.querySelectorAll('#math-keyboard button[data-key]').forEach(btn => {
+                btn.addEventListener('pointerdown', (e) => {
+                    e.preventDefault(); // Prevent blurring the input
+                    const val = btn.dataset.key;
+                    if (!activeInputEl) return;
+
+                    if (activeInputEl.tagName === 'INPUT') {
+                        const start = activeInputEl.selectionStart || 0;
+                        const end = activeInputEl.selectionEnd || 0;
+                        const originalValue = activeInputEl.value;
+
+                        if (val === 'clear') {
+                            activeInputEl.value = '';
+                        } else if (val === 'backspace') {
+                            activeInputEl.value = originalValue.slice(0, Math.max(0, start - 1)) + originalValue.slice(end);
+                        } else {
+                            activeInputEl.value = originalValue.slice(0, start) + val + originalValue.slice(end);
+                        }
+                        activeInputEl.dispatchEvent(new Event('input'));
+                    } else if (activeInputEl.hasAttribute('contenteditable')) {
+                        let text = activeInputEl.textContent;
+                        if (val === 'clear') {
+                            activeInputEl.textContent = '';
+                        } else if (val === 'backspace') {
+                            activeInputEl.textContent = text.slice(0, -1);
+                        } else {
+                            activeInputEl.textContent += val;
+                        }
+                        activeInputEl.dispatchEvent(new Event('input'));
+                    }
+                });
+            });
+        }
+
+        // --- Math UI Formatting Tools ---
+        function formatFactor(coeff, variable, isLeading = false) {
+            if (coeff === 0) return '';
+            let sign = coeff > 0 ? ' + ' : ' - ';
+            if (isLeading) sign = coeff > 0 ? '' : '-';
+            const absCoeff = Math.abs(coeff);
+            let coeffStr = (absCoeff === 1 && variable !== '') ? '' : absCoeff;
+            return `${sign}${coeffStr}${variable}`;
+        }
+
+        function formatMathTrinomial(a, b, c) {
+            const partA = formatFactor(a, 'x²', true);
+            const partB = formatFactor(b, 'x');
+            const partC = formatFactor(c, '');
+            return (partA + partB + partC) || '0';
+        }
+
+        function formatMathBinomial(coeff, constant) {
+            if (coeff === 0) return constant.toString();
+            const termX = coeff === 1 ? 'x' : (coeff === -1 ? '-x' : `${coeff}x`);
+            if (constant === 0) return termX;
+            const sign = constant > 0 ? ' + ' : ' - ';
+            return `${termX}${sign}${Math.abs(constant)}`;
+        }
+
+        // --- Sliders Sync Setup ---
+        function registerSync(numEl, sliderEl) {
+            sliderEl.addEventListener('input', (e) => {
+                numEl.value = e.target.value;
+                onParametersUpdated();
+            });
+            numEl.addEventListener('input', (e) => {
+                let val = parseInt(e.target.value);
+                if (isNaN(val)) return;
+                val = Math.max(-50, Math.min(50, val));
+                sliderEl.value = val;
+                onParametersUpdated();
+            });
+        }
+        registerSync(numA, sliderA);
+        registerSync(numB, sliderB);
+        registerSync(numC, sliderC);
+
+        forceAOne.addEventListener('change', () => {
+            if (forceAOne.checked) {
+                numA.value = 1;
+                sliderA.value = 1;
+                numA.disabled = true;
+                sliderA.disabled = true;
+            } else {
+                numA.disabled = false;
+                sliderA.disabled = false;
+            }
+            onParametersUpdated();
+        });
+
+        // --- Dynamic Tab Controller ---
+        document.querySelectorAll('#mode-tab-navbar button').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('#mode-tab-navbar button').forEach(b => {
+                    b.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900";
+                });
+                tab.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-900 shadow-sm";
+                currentMode = tab.dataset.mode;
+                resetWorkspaceForActiveMode();
+            };
+        });
+
+        function resetCellsClasses() {
+            const neutral = "flex flex-col items-center justify-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-slate-900 font-mono transition-all duration-300";
+            cellTl.className = neutral; cellTr.className = neutral;
+            cellBl.className = neutral; cellBr.className = neutral;
+
+            const borderStyle = "flex flex-col items-center justify-center border border-dashed border-slate-300 rounded-2xl bg-slate-100/50 transition-all font-mono text-xs cursor-pointer";
+            gcfCol1.className = borderStyle; gcfCol2.className = borderStyle;
+            gcfRow1.className = borderStyle; gcfRow2.className = borderStyle;
+        }
+
+        // --- Setups and Resets per Mode ---
+        function resetWorkspaceForActiveMode() {
+            placedTL = placedTR = placedBL = placedBR = false;
+            isGCFSolved = false;
+            pulledGCF = 1;
+            solvedGCFBorders = { row1: null, row2: null, col1: null, col2: null };
+
+            // Clear spans
+            cellTlValue.textContent = '';
+            cellTrValue.textContent = '';
+            cellBlValue.textContent = '';
+            cellBrValue.textContent = '';
+
+            // Clear borders
+            gcfRow1.textContent = ''; gcfRow2.textContent = '';
+            gcfCol1.textContent = ''; gcfCol2.textContent = '';
+
+            // Reset designs
+            resetCellsClasses();
+
+            // Hide specific factoring features by default
+            gcfScaffoldingCard.classList.add('hidden');
+            termCardsContainer.classList.add('hidden');
+            parenthesisCard.classList.add('hidden');
+
+            // Apply specific UI parameters labels
+            if (currentMode === 'int-mult') {
+                labelNumB.textContent = 'Constant Part 1';
+                labelNumC.textContent = 'Constant Part 2';
+                workspaceEquationLabel.textContent = 'Multiplication Product Target';
+            } else if (currentMode === 'int-div') {
+                labelNumB.textContent = 'Divisor part 1';
+                labelNumC.textContent = 'Divisor part 2';
+                workspaceEquationLabel.textContent = 'Division Target';
+            } else if (currentMode === 'complete-square') {
+                labelNumB.textContent = 'Linear b';
+                labelNumC.textContent = 'Adjustment constant';
+                workspaceEquationLabel.textContent = 'Completing the Square';
+            } else {
+                labelNumB.textContent = 'linear b';
+                labelNumC.textContent = 'constant c';
+                workspaceEquationLabel.textContent = 'Active Expression';
+            }
+
+            configureActiveModeLayout();
+        }
+
+        // Configure cell editable permissions and step guides per mode
+        function configureActiveModeLayout() {
+            activeA = parseInt(numA.value) || 0;
+            activeB = parseInt(numB.value) || 0;
+            activeC = parseInt(numC.value) || 0;
+
+            resetCellsClasses();
+            activeModeBadge.textContent = document.querySelector(`[data-mode="${currentMode}"]`).textContent;
+
+            if (currentMode === 'int-mult') {
+                const row1 = activeA, row2 = activeB;
+                const col1 = activeC, col2 = 12; // place values splits
+
+                // Show product preview in header
+                const product = (row1 + row2) * (col1 + col2);
+                equationDisplay.textContent = `(${row1} + ${row2}) × (${col1} + ${col2}) = ${product}`;
+
+                modeNarrativeContainer.innerHTML = `
+                    <div class="space-y-3">
+                        <p class="font-bold text-slate-800">Fill inside the grid spaces:</p>
+                        <p class="text-xs">The outer dimension factors are preset on the boundaries:</p>
+                        <ul class="list-disc pl-4 text-xs space-y-1">
+                            <li>Row dimensions: <strong class="text-emerald-700">${row1}</strong> and <strong class="text-emerald-700">${row2}</strong></li>
+                            <li>Column dimensions: <strong class="text-blue-700">${col1}</strong> and <strong class="text-blue-700">${col2}</strong></li>
+                        </ul>
+                        <p class="text-xs font-semibold">1. Select each cell inside the Area Model and type the product of its row and column borders.</p>
+                        <p class="text-xs">2. Sum the four inner values to calculate the total product: <strong class="font-mono">${product}</strong>.</p>
+                    </div>
+                `;
+
+                // Set headers
+                gcfRow1.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Row 1</span><span class="text-base font-black font-mono pt-2">${row1}</span>`;
+                gcfRow2.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Row 2</span><span class="text-base font-black font-mono pt-2">+${row2}</span>`;
+                gcfCol1.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Col 1</span><span class="text-base font-black font-mono pt-2">${col1}</span>`;
+                gcfCol2.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Col 2</span><span class="text-base font-black font-mono pt-2">+${col2}</span>`;
+
+                // Inner cells are fully editable
+                cellTlValue.setAttribute('contenteditable', 'true');
+                cellTrValue.setAttribute('contenteditable', 'true');
+                cellBlValue.setAttribute('contenteditable', 'true');
+                cellBrValue.setAttribute('contenteditable', 'true');
+
+                cellTlValue.setAttribute('data-placeholder', `${row1}×${col1}`);
+                cellTrValue.setAttribute('data-placeholder', `${row1}×${col2}`);
+                cellBlValue.setAttribute('data-placeholder', `${row2}×${col1}`);
+                cellBrValue.setAttribute('data-placeholder', `${row2}×${col2}`);
+
+                activeAlertBanner.textContent = "Fill inside the product cells to check your multiplication.";
+
+            } else if (currentMode === 'int-div') {
+                const row1 = activeA, row2 = activeB; // Lock divisor splits
+                const dividend = activeC;
+                equationDisplay.textContent = `Divide ${dividend} ÷ (${row1} + ${row2})`;
+
+                modeNarrativeContainer.innerHTML = `
+                    <div class="space-y-3">
+                        <p class="font-bold text-slate-800">Deconstruct the dividend:</p>
+                        <p class="text-xs">Place portions of the dividend inside the cells, determining the quotient splits on the column headers:</p>
+                        <ul class="list-disc pl-4 text-xs space-y-1">
+                            <li>Divisor: <strong class="text-emerald-700">${row1} + ${row2} = ${row1 + row2}</strong></li>
+                        </ul>
+                        <p class="text-xs">Fill in your quotient guesses inside the top Column slots, and partial areas inside the grid.</p>
+                    </div>
+                `;
+
+                gcfRow1.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Div 1</span><span class="text-base font-black font-mono pt-2">${row1}</span>`;
+                gcfRow2.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Div 2</span><span class="text-base font-black font-mono pt-2">+${row2}</span>`;
+
+                // Column quotient headers are editable
+                makeColEditable('gcf-col1', 'col1');
+                makeColEditable('gcf-col2', 'col2');
+
+                cellTlValue.setAttribute('contenteditable', 'true');
+                cellTrValue.setAttribute('contenteditable', 'true');
+                cellBlValue.setAttribute('contenteditable', 'true');
+                cellBrValue.setAttribute('contenteditable', 'true');
+
+                activeAlertBanner.textContent = "Assign quotient columns and partial values on the grid.";
+
+            } else if (currentMode === 'poly-mult') {
+                const term1 = formatMathBinomial(activeA, activeB);
+                const term2 = formatMathBinomial(1, activeC);
+                equationDisplay.textContent = `(${term1}) × (${term2})`;
+
+                modeNarrativeContainer.innerHTML = `
+                    <div class="space-y-2">
+                        <p class="font-bold text-slate-800">Fill the partial areas:</p>
+                        <p class="text-xs">Outer dimensions are loaded on the boundaries. Type the product inside each cell:</p>
+                        <ul class="list-disc pl-4 text-xs space-y-0.5">
+                            <li>TL Cell: <strong class="font-mono">(${activeA}x) × (x) = ${activeA}x²</strong></li>
+                            <li>TR Cell: <strong class="font-mono">(${activeA}x) × (${activeC})</strong></li>
+                        </ul>
+                        <p class="text-xs">Complete all 4 spaces to factor the combined polynomial expression.</p>
+                    </div>
+                `;
+
+                gcfRow1.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Row 1</span><span class="text-sm font-black font-mono pt-2">${formatMathBinomial(activeA, 0)}</span>`;
+                gcfRow2.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Row 2</span><span class="text-sm font-black font-mono pt-2">${activeB >=0 ? '+' : ''}${activeB}</span>`;
+
+                gcfCol1.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Col 1</span><span class="text-sm font-black font-mono pt-2">x</span>`;
+                gcfCol2.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Col 2</span><span class="text-sm font-black font-mono pt-2">${activeC >=0 ? '+' : ''}${activeC}</span>`;
+
+                cellTlValue.setAttribute('contenteditable', 'true');
+                cellTrValue.setAttribute('contenteditable', 'true');
+                cellBlValue.setAttribute('contenteditable', 'true');
+                cellBrValue.setAttribute('contenteditable', 'true');
+
+                cellTlValue.setAttribute('data-placeholder', 'ax²');
+                cellTrValue.setAttribute('data-placeholder', 'term');
+                cellBlValue.setAttribute('data-placeholder', 'term');
+                cellBrValue.setAttribute('data-placeholder', 'constant');
+
+                activeAlertBanner.textContent = "Multiply borders to calculate terms inside the model.";
+
+            } else if (currentMode === 'poly-div') {
+                equationDisplay.textContent = `(${formatMathTrinomial(activeA, activeB, activeC)}) ÷ (x - 2)`;
+
+                modeNarrativeContainer.innerHTML = `
+                    <div class="space-y-3">
+                        <p class="font-bold text-slate-800">Polynomial Division Grid:</p>
+                        <p class="text-xs">The divisor is loaded on the left borders:</p>
+                        <ul class="list-disc pl-4 text-xs space-y-1">
+                            <li>Left boundaries: <strong class="font-mono">x</strong> and <strong class="font-mono">-2</strong></li>
+                        </ul>
+                        <p class="text-xs font-semibold">1. Start by typing the leading term <strong class="font-mono">${activeA}x²</strong> inside the TL cell.</p>
+                        <p class="text-xs">2. This will prompt you to solve the remaining columns and borders step-by-step.</p>
+                    </div>
+                `;
+
+                gcfRow1.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Div 1</span><span class="text-base font-black font-mono pt-2">x</span>`;
+                gcfRow2.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Div 2</span><span class="text-base font-black font-mono pt-2">-2</span>`;
+
+                makeColEditable('gcf-col1', 'col1');
+                makeColEditable('gcf-col2', 'col2');
+
+                cellTlValue.setAttribute('contenteditable', 'true');
+                cellTrValue.setAttribute('contenteditable', 'true');
+                cellBlValue.setAttribute('contenteditable', 'true');
+                cellBrValue.setAttribute('contenteditable', 'true');
+
+                activeAlertBanner.textContent = "Fill the dividend cells and solve the top quotient dimensions.";
+
+            } else if (currentMode === 'complete-square') {
+                equationDisplay.textContent = `Complete square for: x² + ${activeB}x + ${activeC}`;
+
+                modeNarrativeContainer.innerHTML = `
+                    <div class="space-y-3">
+                        <p class="font-bold text-slate-800">Geometric Square Building:</p>
+                        <p class="text-xs">The leading term <strong class="font-mono">x²</strong> is pre-filled. The linear term <strong class="font-mono">${activeB}x</strong> must be split **equally** on both diagonals:</p>
+                        <ul class="list-disc pl-4 text-xs space-y-1">
+                            <li>Type <strong class="font-mono">${activeB / 2}x</strong> into both TR and BL cells.</li>
+                        </ul>
+                        <p class="text-xs">This will determine the perfect square constant for the BR corner.</p>
+                    </div>
+                `;
+
+                // Pre-place leading term
+                cellTlValue.textContent = 'x²';
+                cellTlValue.setAttribute('contenteditable', 'false');
+                cellTl.className = "flex flex-col items-center justify-center bg-blue-50 border-2 border-blue-400 text-blue-700 font-mono transition-all duration-300 shadow-sm relative rounded-2xl";
+
+                gcfRow1.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Row 1</span><span class="text-base font-black font-mono pt-2">x</span>`;
+                gcfCol1.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Col 1</span><span class="text-base font-black font-mono pt-2">x</span>`;
+
+                cellTrValue.setAttribute('contenteditable', 'true');
+                cellBlValue.setAttribute('contenteditable', 'true');
+                cellBrValue.setAttribute('contenteditable', 'true');
+
+                cellTrValue.setAttribute('data-placeholder', `split b/2`);
+                cellBlValue.setAttribute('data-placeholder', `split b/2`);
+                cellBrValue.setAttribute('data-placeholder', `c_perfect`);
+
+                activeAlertBanner.textContent = "Split the middle term evenly into both diagonals to build a perfect square.";
+
+            } else {
+                // Polynomial Factoring (Complete Original v76/79 Script Mode)
+                termCardsContainer.classList.remove('hidden');
+                parenthesisCard.classList.remove('hidden');
+
+                equationDisplay.textContent = formatMathTrinomial(activeA, activeB, activeC);
+
+                modeNarrativeContainer.innerHTML = `
+                    <div class="space-y-2">
+                        <p class="font-bold text-slate-800">Area Model Step-by-Step Factoring:</p>
+                        <p class="text-xs">1. **Place terms**: Drag your outer term cards into the matching cells of the Area Model (TL and BR).</p>
+                        <p class="text-xs">2. **Middle Split**: Solve the product and sum sum-rules on the multiplication table below to split the middle term.</p>
+                        <p class="text-xs">3. **Find GCF Borders**: Calculate GCFs for rows and columns to find the final binomial dimensions!</p>
+                    </div>
+                `;
+
+                cellTlValue.setAttribute('contenteditable', 'true');
+                cellTrValue.setAttribute('contenteditable', 'true');
+                cellBlValue.setAttribute('contenteditable', 'true');
+                cellBrValue.setAttribute('contenteditable', 'true');
+
+                cellTlValue.setAttribute('data-placeholder', 'type ax²');
+                cellTrValue.setAttribute('data-placeholder', 'type split term');
+                cellBlValue.setAttribute('data-placeholder', 'type split term');
+                cellBrValue.setAttribute('data-placeholder', 'type c');
+
+                activeAlertBanner.textContent = "Start by placing your ax² and c term cards on the grid.";
+            }
+
+            attachCellValidationListeners();
+        }
+
+        function makeColEditable(elementId, slotId) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `
+                <span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">${slotId === 'col1' ? 'Col 1' : 'Col 2'}</span>
+                <span id="border-input-${slotId}" contenteditable="true" class="text-base font-black font-mono pt-2 outline-none border-b border-dashed border-slate-400 w-16 text-center focus:border-indigo-500" data-placeholder="factor"></span>
+            `;
+        }
+
+        // --- Core Validation System ---
+        function attachCellValidationListeners() {
+            [cellTlValue, cellTrValue, cellBlValue, cellBrValue].forEach(span => {
+                span.onblur = () => checkActiveGridMath();
+                span.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        span.blur();
+                    }
+                };
+            });
+        }
+
+        function checkActiveGridMath() {
+            const tl = cellTlValue.textContent.trim();
+            const tr = cellTrValue.textContent.trim();
+            const bl = cellBlValue.textContent.trim();
+            const br = cellBrValue.textContent.trim();
+
+            if (currentMode === 'int-mult') {
+                const row1 = activeA, row2 = activeB, col1 = activeC, col2 = 12;
+                const correctTL = row1 * col1;
+                const correctTR = row1 * col2;
+                const correctBL = row2 * col1;
+                const correctBR = row2 * col2;
+
+                let complete = true;
+
+                if (tl) {
+                    if (parseInt(tl) === correctTL) setCorrect('tl'); else { setWrong('tl'); complete = false; }
+                } else complete = false;
+
+                if (tr) {
+                    if (parseInt(tr) === correctTR) setCorrect('tr'); else { setWrong('tr'); complete = false; }
+                } else complete = false;
+
+                if (bl) {
+                    if (parseInt(bl) === correctBL) setCorrect('bl'); else { setWrong('bl'); complete = false; }
+                } else complete = false;
+
+                if (br) {
+                    if (parseInt(br) === correctBR) setCorrect('br'); else { setWrong('br'); complete = false; }
+                } else complete = false;
+
+                if (complete) {
+                    activeAlertBanner.innerHTML = `<span class="text-emerald-700 font-bold"><i class="fa-solid fa-circle-check"></i> Correct! Combined Product: ${correctTL} + ${correctTR} + ${correctBL} + ${correctBR} = ${(row1+row2)*(col1+col2)}</span>`;
+                } else {
+                    activeAlertBanner.textContent = "Keep multiplying outer row values with columns.";
+                }
+
+            } else if (currentMode === 'poly-mult') {
+                const correctTL = `${activeA}x²`;
+                const correctTR = `${activeA * activeC}x`;
+                const correctBL = `${activeB}x`;
+                const correctBR = `${activeB * activeC}`;
+
+                let complete = true;
+
+                if (tl) {
+                    if (tl.replace(/\s+/g, '') === correctTL) setCorrect('tl'); else { setWrong('tl'); complete = false; }
+                } else complete = false;
+
+                if (tr) {
+                    if (tr.replace(/\s+/g, '') === correctTR) setCorrect('tr'); else { setWrong('tr'); complete = false; }
+                } else complete = false;
+
+                if (bl) {
+                    if (bl.replace(/\s+/g, '') === correctBL) setCorrect('bl'); else { setWrong('bl'); complete = false; }
+                } else complete = false;
+
+                if (br) {
+                    if (br.replace(/\s+/g, '') === correctBR) setCorrect('br'); else { setWrong('br'); complete = false; }
+                } else complete = false;
+
+                if (complete) {
+                    const finalPoly = formatMathTrinomial(activeA, (activeA*activeC + activeB), activeB*activeC);
+                    activeAlertBanner.innerHTML = `<span class="text-emerald-700 font-bold"><i class="fa-solid fa-circle-check"></i> Correct! Simplified Expression: ${finalPoly}</span>`;
+                } else {
+                    activeAlertBanner.textContent = "Multiply terms to find the partial products inside.";
+                }
+
+            } else if (currentMode === 'complete-square') {
+                const targetVal = activeB / 2;
+                const correctSplit = `${targetVal}x`;
+                const correctBR = targetVal * targetVal;
+
+                let complete = true;
+
+                if (tr) {
+                    if (tr.replace(/\s+/g, '') === correctSplit) setCorrect('tr'); else { setWrong('tr'); complete = false; }
+                } else complete = false;
+
+                if (bl) {
+                    if (bl.replace(/\s+/g, '') === correctSplit) setCorrect('bl'); else { setWrong('bl'); complete = false; }
+                } else complete = false;
+
+                if (br) {
+                    if (parseInt(br) === correctBR) {
+                        setCorrect('br');
+                        gcfRow2.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Row 2</span><span class="text-base font-black font-mono pt-2">+${targetVal}</span>`;
+                        gcfCol2.innerHTML = `<span class="text-[9px] uppercase font-sans font-bold text-slate-400 absolute top-1">Col 2</span><span class="text-base font-black font-mono pt-2">+${targetVal}</span>`;
+                    } else {
+                        setWrong('br');
+                        complete = false;
+                    }
+                } else complete = false;
+
+                if (complete) {
+                    const rem = activeC - correctBR;
+                    activeAlertBanner.innerHTML = `<span class="text-emerald-700 font-bold"><i class="fa-solid fa-circle-check"></i> Complete! Vertex Form: (x + ${targetVal})² ${rem >= 0 ? '+' : ''}${rem}</span>`;
+                } else {
+                    activeAlertBanner.textContent = "Split the middle term evenly into both diagonals to build a perfect square.";
+                }
+            }
+        }
+
+        function setCorrect(pos) {
+            const cell = {tl:cellTl, tr:cellTr, bl:cellBl, br:cellBr}[pos];
+            cell.className = "flex flex-col items-center justify-center bg-emerald-50 border-2 border-emerald-400 text-emerald-700 font-mono transition-all duration-300 shadow-sm relative rounded-2xl";
+        }
+
+        function setWrong(pos) {
+            const cell = {tl:cellTl, tr:cellTr, bl:cellBl, br:cellBr}[pos];
+            cell.className = "flex flex-col items-center justify-center bg-rose-50 border-2 border-rose-400 text-rose-700 font-mono transition-all duration-300 relative rounded-2xl";
+        }
+
+        function onParametersUpdated() {
+            configureActiveModeLayout();
+        }
+
+        // --- Initialize App ---
+        window.onload = () => {
+            attachKeyboardListeners();
+            configureActiveModeLayout();
+        };
+
+        // --- Practice Problems Generator ---
+        btnPractice.onclick = () => {
+            const d = forceAOne.checked ? 1 : Math.floor(Math.random() * 3) + 1;
+            const f = forceAOne.checked ? 1 : Math.floor(Math.random() * 2) + 1;
+            const e = (Math.floor(Math.random() * 6) + 1) * (Math.random() > 0.5 ? 1 : -1);
+            const g = (Math.floor(Math.random() * 6) + 1) * (Math.random() > 0.5 ? 1 : -1);
+
+            let a = d * f;
+            let b = (d * g) + (e * f);
+            let c = e * g;
+
+            numA.value = a; sliderA.value = a;
+            numB.value = b; sliderB.value = b;
+            numC.value = c; sliderC.value = c;
+
+            onParametersUpdated();
+        };
+
+    </script>
 </body>
 </html>
