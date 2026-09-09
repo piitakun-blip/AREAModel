@@ -1,331 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Universal Area Model Workspace - v16</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Area Model Workspace - v17</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        body { font-family: 'Inter', sans-serif; }
+        .math-font { font-family: 'Fira Code', monospace; }
+        .touch-action-none { touch-action: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .editable-model-value {
+            min-width: 3.5rem;
+            min-height: 2rem;
+            padding: 0.2rem 0.35rem;
+            border-radius: 0.35rem;
+            outline: none;
+            cursor: text;
+            white-space: nowrap;
         }
-        .math-font {
-            font-family: 'Fira Code', monospace;
+        .editable-model-value:empty::before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            font-weight: 500;
         }
-        /* Dragging and custom cursor styles */
-        .dragging {
-            opacity: 0.4;
-            transform: scale(0.95);
+        .editable-model-value:focus {
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+            background: rgba(255, 255, 255, 0.9);
         }
-        .touch-action-none {
-            touch-action: none;
-        }
-        /* Custom styled scrollbars */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 999px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 999px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        /* Draggable student widgets */
+
+        /* Floating Tool Windows (Calculator, Chart, and Detachable Keyboard) */
         .floating-tool-window {
             position: fixed;
             display: none;
             flex-direction: column;
             box-sizing: border-box;
-            min-width: 300px;
+            min-width: 280px;
             max-width: calc(100vw - 24px);
-            max-height: calc(100vh - 110px);
+            max-height: calc(100vh - 100px);
             background: white;
             border: 2px solid #cbd5e1;
             border-radius: 16px;
-            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+            box-shadow: 0 22px 55px rgba(15, 23, 42, 0.25);
             overflow: hidden;
             resize: both;
-            z-index: 200;
+            z-index: 160;
         }
-        .floating-tool-window.is-open {
-            display: flex;
-        }
-        .floating-tool-header {
+        .floating-tool-window.is-open { display: flex; }
+        .floating-tool-window-header {
             flex: 0 0 auto;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.6rem 0.85rem;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
             border-bottom: 1px solid #e2e8f0;
-            background: #f8fafc;
+            background: rgba(248, 250, 252, 0.98);
             cursor: move;
             user-select: none;
             touch-action: none;
         }
-        .floating-tool-body {
+        .floating-tool-window-body {
             flex: 1 1 auto;
             min-height: 0;
             overflow: auto;
             padding: 0.75rem;
             overscroll-behavior: contain;
-            scrollbar-gutter: stable;
-        }
-        /* Custom styled grid inputs */
-        .editable-cell-value {
-            outline: none;
-            cursor: text;
-            white-space: nowrap;
-            transition: all 0.2s ease;
-            min-width: 3.5rem;
-            min-height: 2rem;
-            padding: 0.25rem 0.4rem;
-            border: 1px dashed #cbd5e1;
-            border-radius: 0.375rem;
-            display: inline-block;
-        }
-        .editable-cell-value:empty::before {
-            content: attr(data-placeholder);
-            color: #94a3b8;
-            font-weight: 500;
-        }
-        .editable-cell-value:focus {
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35);
-            background: rgba(255, 255, 255, 0.95);
-            border-style: solid;
-            border-color: #6366f1;
-        }
-        /* Cell color statuses */
-        .cell-correct {
-            background-color: #f0fdf4 !important;
-            border: 2px solid #34d399 !important;
-            color: #065f46 !important;
-            font-weight: 900 !important;
-        }
-        .cell-wrong {
-            background-color: #fff1f2 !important;
-            border: 2px solid #f87171 !important;
-            color: #991b1b !important;
-        }
-        /* Dynamic stage status circle */
-        .stage-progress-circle {
-            width: 1.15rem;
-            height: 1.15rem;
-            border-radius: 9999px;
-            border: 2px solid #cbd5e1;
-            background: white;
-            color: white;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
-            font-size: .65rem;
-            font-weight: 900;
-        }
-        .stage-progress-circle.done {
-            background: #10b981;
-            border-color: #059669;
-        }
-        .stage-progress-circle.done::after {
-            content: '✓';
-        }
-        @media (min-width: 1024px) {
-            .workspace-sticky {
-                position: sticky;
-                top: 88px;
-                max-height: calc(100vh - 120px);
-            }
-        }
-        /* Area Model outer layout */
-        .area-model-table td {
-            position: relative;
-            transition: all 0.2s ease;
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased select-none">
 
-    <!-- Header Section -->
+    <!-- Header & Mode Navigation Bar -->
     <header class="border-b border-slate-200 bg-white sticky top-0 z-50 shadow-sm" id="site-header">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <div class="p-2.5 bg-indigo-600/10 text-indigo-600 rounded-xl border border-indigo-500/20">
+                <div class="p-2 bg-indigo-600/10 text-indigo-600 rounded-xl border border-indigo-500/20">
                     <i class="fa-solid fa-shapes text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight text-slate-900">Universal Area Model Workspace</h1>
-                    <p class="text-xs text-slate-500">Interactive Visual Mathematics Laboratory &bull; v16</p>
+                    <h1 class="text-lg font-bold tracking-tight text-slate-900">Universal Area Model Workspace</h1>
+                    <p class="text-xs text-slate-500">Multi-Mode Visual Algebra & Arithmetic Suite</p>
                 </div>
             </div>
 
-            <!-- Universal Mode Navigation Tabs -->
-            <nav class="flex flex-wrap bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner max-w-full overflow-x-auto custom-scrollbar">
-                <button onclick="switchWorkspaceMode('int-mult')" id="tab-int-mult" class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap">Integer Mult</button>
-                <button onclick="switchWorkspaceMode('int-div')" id="tab-int-div" class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap">Integer Div</button>
-                <button onclick="switchWorkspaceMode('poly-mult')" id="tab-poly-mult" class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap">Poly Mult</button>
-                <button onclick="switchWorkspaceMode('poly-div')" id="tab-poly-div" class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap">Poly Div</button>
-                <button onclick="switchWorkspaceMode('complete-square')" id="tab-complete-square" class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap">Complete Square</button>
-                <button onclick="switchWorkspaceMode('poly-factor')" id="tab-poly-factor" class="px-3.5 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 whitespace-nowrap">Poly Factoring</button>
+            <!-- Mode Switcher Tabs -->
+            <nav class="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+                <button id="tab-factoring" class="mode-tab px-3 py-1.5 rounded-lg bg-white text-indigo-700 shadow-sm transition-all" onclick="switchMode('factoring')">Factoring</button>
+                <button id="tab-int-mult" class="mode-tab px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all" onclick="switchMode('int-mult')">Integer ×</button>
+                <button id="tab-int-div" class="mode-tab px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all" onclick="switchMode('int-div')">Integer ÷</button>
+                <button id="tab-poly-mult" class="mode-tab px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all" onclick="switchMode('poly-mult')">Poly ×</button>
+                <button id="tab-poly-div" class="mode-tab px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all" onclick="switchMode('poly-div')">Poly ÷</button>
+                <button id="tab-square" class="mode-tab px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all" onclick="switchMode('square')">Complete Square</button>
             </nav>
         </div>
     </header>
 
-    <!-- Main Workspace Layout -->
+    <!-- Main Content Grid -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
 
-        <!-- Grid layout separating the dynamic left stages column from the fixed right workspace -->
+        <!-- Workspace Grid Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            <!-- LEFT COLUMN: Stage Instructions, Flow Control, and Auxiliary Panels (5 Cols) -->
-            <section class="lg:col-span-5 flex flex-col gap-6 order-2 lg:order-first">
+            <!-- Left Side: Interactive Guidance & Stage Cards (5 cols) -->
+            <section class="lg:col-span-5 flex flex-col gap-5 order-2 lg:order-first">
 
-                <!-- Dynamic Problem Header Card (Replacing sliders and custom windows!) -->
-                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-md flex flex-col gap-3">
-                    <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                        <div>
-                            <span id="active-mode-badge" class="px-2 py-0.5 bg-indigo-100 text-indigo-700 font-extrabold tracking-wide uppercase text-[9px] rounded-full border border-indigo-200">Integer Multiplication</span>
-                            <h2 class="text-md font-extrabold text-slate-900 mt-1 uppercase tracking-wider">Active Problem</h2>
-                        </div>
-                        <button id="btn-generate-practice" onclick="generateRandomProblem()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
-                            <i class="fa-solid fa-dice"></i> Generate Practice
-                        </button>
+                <!-- Student Tools Quick Access Bar -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                            <i class="fa-solid fa-toolbox"></i> Movable Student Tools
+                        </h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Click to open detachable windows</p>
                     </div>
-
-                    <!-- Clean custom starting problem entry bar (replacing bulky slider windows!) -->
-                    <div id="equation-display-container" class="flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-xl relative">
-                        <div id="equation-text-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Equation / Expression</div>
-                        <div id="active-problem-display" class="text-2xl font-black text-slate-950 math-font py-1.5 text-center select-all">
-                            152 × 17
-                        </div>
-
-                        <!-- Inline problem editor forms -->
-                        <div class="mt-3 pt-3 border-t border-slate-200 w-full flex flex-col gap-2.5">
-                            <span class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Change starting equation/values</span>
-                            <div class="flex flex-wrap gap-2 items-center justify-center" id="custom-inputs-wrapper">
-                                <!-- Populated dynamically based on Mode -->
-                            </div>
-                            <button onclick="applyTypedCustomProblem()" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-xs transition-all shadow-sm">
-                                Apply Custom Values
-                            </button>
-                        </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="btn-open-keyboard" onclick="toggleFloatingTool('keyboard')" class="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-keyboard"></i> Math Keypad
+                        </button>
+                        <button id="btn-open-calc" onclick="toggleFloatingTool('calculator')" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-calculator"></i> Calculator
+                        </button>
+                        <button id="btn-open-chart" onclick="toggleFloatingTool('chart')" class="px-3 py-1.5 rounded-lg border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-table-cells"></i> Factors
+                        </button>
                     </div>
                 </div>
 
-                <!-- STAGES CONTAINER (Collapsible Stage Checklist Cards) -->
-                <div id="stage-instructions-wrapper" class="flex flex-col gap-4">
-                    <!-- Dynamic Staged instruction cards populated dynamically on load -->
+                <!-- Dynamic Instruction Card -->
+                <div id="mode-instruction-card" class="bg-white border border-slate-200 rounded-2xl p-5 shadow-md flex flex-col gap-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h3 id="mode-title" class="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-graduation-cap text-indigo-500"></i> Polynomial Factoring
+                        </h3>
+                        <span id="mode-status-badge" class="px-2 py-0.5 bg-indigo-100 text-indigo-700 font-bold text-[10px] rounded-full uppercase border border-indigo-200">Stage 1</span>
+                    </div>
+                    <p id="mode-description" class="text-xs text-slate-600 leading-relaxed">
+                        Identify the GCF, split the middle term using the multiplication table, fill the Area Model grid, and extract outside factors.
+                    </p>
+                    <div id="mode-action-area" class="mt-2 flex flex-col gap-2">
+                        <!-- Dynamic controls per mode -->
+                    </div>
                 </div>
 
-                <!-- FLOATING WINDOWS TOGGLE PANEL -->
-                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
-                    <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-toolbox text-slate-500"></i> Movable student utilities
-                    </span>
-                    <div class="flex gap-2.5">
-                        <button onclick="toggleFloatingTool('calculator')" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold shadow-sm transition-colors flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-calculator text-slate-500"></i> Floating Calculator
-                        </button>
-                        <button onclick="toggleFloatingTool('chart')" class="flex-1 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold shadow-sm transition-colors flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-table-cells text-indigo-500"></i> Multiplication Chart
-                        </button>
+                <!-- Factoring Specific Stage Cards (Preserved v76/79 Scaffolding) -->
+                <div id="factoring-cards-group" class="flex flex-col gap-4">
+                    <div id="gcf-scaffolding-card" class="bg-white border border-amber-200 rounded-2xl p-5 shadow-md hidden">
+                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-amber-800 mb-2">Optional: Factor Out Common GCF</h4>
+                        <div id="gcf-options-container" class="flex flex-wrap gap-2 justify-center my-2"></div>
+                        <p id="gcf-explanation" class="text-[11px] text-slate-500 text-center">Select the overall GCF if all terms share one.</p>
+                    </div>
+
+                    <div id="multiplication-card" class="bg-white border border-slate-200 rounded-2xl p-5 shadow-md hidden">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                                <i class="fa-solid fa-scissors text-amber-500"></i> Split Middle Term Clues
+                            </h4>
+                            <span id="product-target-display" class="px-2 py-0.5 bg-indigo-50 text-indigo-700 font-mono text-[10px] font-bold rounded border border-indigo-200">Target ac = 80</span>
+                        </div>
+                        <div id="multiplication-chart-container" class="w-full overflow-x-auto custom-scrollbar flex justify-center p-1"></div>
                     </div>
                 </div>
 
             </section>
 
-            <!-- RIGHT COLUMN: FIXED STICKY AREA MODEL GRID & KEYS VIEWPORT (7 Cols) -->
-            <section class="lg:col-span-7 flex flex-col gap-6 lg:sticky lg:top-[88px] order-1 lg:order-last">
+            <!-- Right Side: Stationary Area Model & Active Math Display (7 cols) -->
+            <section class="lg:col-span-7 flex flex-col gap-5 order-1 lg:order-last lg:sticky lg:top-20">
 
-                <!-- Main Area Model Container Card -->
-                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-md flex flex-col items-center justify-center relative">
-
-                    <!-- Dynamic Grid Control Subheader -->
-                    <div class="flex w-full items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                        <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-table-cells-large text-purple-500"></i> Grid Workspace
-                        </h3>
-                        <span id="grid-dimensions-pill" class="px-2.5 py-0.5 bg-slate-100 text-slate-500 font-bold tracking-wide uppercase text-[9px] rounded-full border border-slate-200">2 × 2 Grid</span>
-                    </div>
-
-                    <!-- Flow Direction Arrow Indicators to represent math vectors -->
-                    <div id="flow-arrows-banner" class="w-full mb-3 px-3 py-2 rounded-xl border border-indigo-100 bg-indigo-50/40 text-[10px] text-indigo-800 text-center flex items-center justify-center gap-2 font-medium">
-                        <span id="flow-direction-icon" class="animate-bounce"><i class="fa-solid fa-arrow-down-long"></i></span>
-                        <span id="flow-direction-text">Multiplying into the grid: Row factors × Column factors produce inner cell products.</span>
-                    </div>
-
-                    <!-- SCROLLABLE GRID CONTAINER (Crucial for extremely wide multi-term products!) -->
-                    <div class="w-full overflow-x-auto custom-scrollbar p-2 mb-4">
-                        <div id="area-model-table-container" class="flex justify-center min-w-max w-full">
-                            <!-- Dynamic Table rendering Rows and Columns depending on inputs -->
-                        </div>
-                    </div>
-
-                    <!-- Grid Dimensions Modifier Toolbar (+/- Column and Row Controls) -->
-                    <div class="flex flex-wrap gap-4 items-center justify-center w-full border-t border-slate-100 pt-4">
-                        <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-                            <i class="fa-solid fa-arrows-left-right text-blue-500"></i> Columns:
-                            <button onclick="modifyGridSize('col', -1)" class="w-6 h-6 bg-white hover:bg-slate-200 rounded border border-slate-300 font-black shadow-sm">-</button>
-                            <span id="col-count-text" class="w-4 text-center font-mono">2</span>
-                            <button onclick="modifyGridSize('col', 1)" class="w-6 h-6 bg-white hover:bg-slate-200 rounded border border-slate-300 font-black shadow-sm">+</button>
-                        </div>
-                        <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-                            <i class="fa-solid fa-arrows-up-down text-emerald-500"></i> Rows:
-                            <button onclick="modifyGridSize('row', -1)" class="w-6 h-6 bg-white hover:bg-slate-200 rounded border border-slate-300 font-black shadow-sm">-</button>
-                            <span id="row-count-text" class="w-4 text-center font-mono">2</span>
-                            <button onclick="modifyGridSize('row', 1)" class="w-6 h-6 bg-white hover:bg-slate-200 rounded border border-slate-300 font-black shadow-sm">+</button>
-                        </div>
-                        <button onclick="checkGridSolution()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold tracking-wide transition-all shadow-md active:scale-95 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-check"></i> Check Grid Solution
-                        </button>
+                <!-- Active Math Expression Display -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-md flex flex-col items-center justify-center gap-2 text-center">
+                    <span id="active-expression-label" class="text-[10px] uppercase font-extrabold tracking-widest text-slate-400">Active Polynomial Expression</span>
+                    <div id="equation-display" class="text-2xl sm:text-3xl font-black text-slate-900 math-font py-1">
+                        2x² - 21x + 40
                     </div>
                 </div>
 
-                <!-- VIRTUAL MATH & NUMERIC KEYBOARD PANEL -->
-                <div id="virtual-math-keypad" class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
-                    <div class="flex items-center justify-between border-b border-slate-700 pb-2">
-                        <span class="text-[9px] font-black tracking-widest text-slate-400 uppercase flex items-center gap-1.5">
-                            <i class="fa-solid fa-keyboard"></i> Virtual Math Keyboard
-                        </span>
-                        <div class="flex items-center gap-1.5">
-                            <span id="focused-cell-indicator" class="text-[10px] font-mono text-slate-400 bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700">No cell selected</span>
-                            <button onclick="dismissVirtualKeyboard()" class="text-xs text-slate-400 hover:text-white transition-colors" title="Hide keyboard">Hide <i class="fa-solid fa-chevron-down"></i></button>
+                <!-- Term Cards Source Container (For Factoring Stage) -->
+                <div id="term-cards-container" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center gap-3">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Place Terms into Area Model</span>
+                    <div class="flex gap-3">
+                        <div id="card-ax2" draggable="true" class="px-4 py-2 bg-blue-600 text-white font-mono font-bold rounded-xl cursor-grab active:cursor-grabbing shadow-sm text-sm select-none touch-action-none">2x²</div>
+                        <div id="card-c" draggable="true" class="px-4 py-2 bg-purple-600 text-white font-mono font-bold rounded-xl cursor-grab active:cursor-grabbing shadow-sm text-sm select-none touch-action-none">40</div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Scalable Area Model Grid Frame -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-md flex flex-col items-center justify-center relative min-h-[380px]">
+                    <div class="flex w-full items-center justify-between mb-4 border-b border-slate-100 pb-2">
+                        <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-table-cells-large text-purple-500"></i> The Area Model Grid
+                        </h3>
+
+                        <!-- Grid Resize Dimension Controls -->
+                        <div id="grid-size-controls" class="flex items-center gap-2 bg-slate-100 px-2 py-1 rounded-xl border border-slate-200">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase">Grid Size:</span>
+                            <span id="grid-dim-label" class="text-xs font-mono font-black text-indigo-700">2 × 2</span>
+                            <button onclick="changeGridSize(-1)" class="w-5 h-5 rounded bg-white hover:bg-slate-200 text-slate-700 font-black text-xs border border-slate-300 flex items-center justify-center" title="Decrease Rows/Cols">-</button>
+                            <button onclick="changeGridSize(1)" class="w-5 h-5 rounded bg-white hover:bg-slate-200 text-slate-700 font-black text-xs border border-slate-300 flex items-center justify-center" title="Increase Rows/Cols">+</button>
                         </div>
                     </div>
 
-                    <!-- Keys Grid Layout (Including digits, variable x, exponents, backspace, sign toggles) -->
-                    <div class="grid grid-cols-6 gap-2">
-                        <!-- Numeric digits row 1 -->
-                        <button onclick="pressVirtualKey('7')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">7</button>
-                        <button onclick="pressVirtualKey('8')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">8</button>
-                        <button onclick="pressVirtualKey('9')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">9</button>
-                        <button onclick="pressVirtualKey('x')" class="h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-black font-mono transition-all active:scale-95">x</button>
-                        <button onclick="pressVirtualKey('x²')" class="h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-black font-mono transition-all active:scale-95">x²</button>
-                        <button onclick="pressVirtualKey('⌫')" class="h-10 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all active:scale-95" title="Backspace">⌫</button>
-
-                        <!-- Numeric digits row 2 -->
-                        <button onclick="pressVirtualKey('4')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">4</button>
-                        <button onclick="pressVirtualKey('5')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">5</button>
-                        <button onclick="pressVirtualKey('6')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">6</button>
-                        <button onclick="pressVirtualKey('+')" class="h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-black font-mono transition-all active:scale-95">+</button>
-                        <button onclick="pressVirtualKey('−')" class="h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-black font-mono transition-all active:scale-95">−</button>
-                        <button onclick="pressVirtualKey('Clear')" class="h-10 rounded-lg bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs transition-all active:scale-95">Clear</button>
-
-                        <!-- Numeric digits row 3 -->
-                        <button onclick="pressVirtualKey('1')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">1</button>
-                        <button onclick="pressVirtualKey('2')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">2</button>
-                        <button onclick="pressVirtualKey('3')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">3</button>
-                        <button onclick="pressVirtualKey('0')" class="col-span-2 h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">0</button>
-                        <button onclick="pressVirtualKey('.')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-black font-mono transition-all active:scale-95">.</button>
+                    <!-- Dynamic Flexible Grid Container -->
+                    <div id="area-model-dynamic-container" class="w-full flex justify-center items-center py-2">
+                        <!-- Grid rendered dynamically via JS -->
                     </div>
                 </div>
 
@@ -333,779 +218,365 @@
         </div>
     </main>
 
-    <!-- FLOATING AUXILIARY WINDOWS (Movable/Draggable Widgets) -->
+    <!-- DETACHABLE MOVABLE & RESIZABLE FLOATING VIRTUAL MATH KEYBOARD -->
+    <div id="keyboard-tool-window" class="floating-tool-window" role="dialog" style="left: 30px; bottom: 30px; top: auto; width: 360px;">
+        <div id="keyboard-tool-window-header" class="floating-tool-window-header">
+            <div class="text-xs font-extrabold uppercase tracking-wider text-amber-800 flex items-center gap-2">
+                <i class="fa-solid fa-keyboard text-amber-600"></i> Virtual Math Keypad
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button onclick="constrainFloatingTool(document.getElementById('keyboard-tool-window'), {recenter: true, kind: 'keyboard'})" class="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 text-[10px] font-extrabold hover:bg-slate-100" title="Reset Position"><i class="fa-solid fa-crosshairs"></i></button>
+                <button onclick="toggleFloatingTool('keyboard')" class="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 font-bold hover:bg-slate-100 text-xs">×</button>
+            </div>
+        </div>
 
-    <!-- 1. Floating Scratch Calculator -->
-    <div aria-label="Movable Calculator" aria-modal="false" class="floating-tool-window" id="calculator-tool-window" role="dialog">
-        <div class="floating-tool-header" id="calculator-tool-window-header">
+        <div class="floating-tool-window-body bg-slate-900 p-3 flex flex-col gap-2">
+            <!-- Top Mode Indicator & Active Target -->
+            <div class="flex items-center justify-between px-2 py-1 bg-slate-800 rounded-lg text-[10px] font-mono text-slate-300 border border-slate-700">
+                <span>Focus: <strong id="keypad-active-target" class="text-amber-400">Area Model Cell</strong></span>
+                <span id="keypad-exp-indicator" class="text-amber-400 font-bold hidden"><i class="fa-solid fa-bolt"></i> Exp Mode (Two-Click)</span>
+            </div>
+
+            <!-- Keypad Buttons Grid -->
+            <div class="grid grid-cols-4 gap-1.5">
+                <!-- Row 1: Algebraic Variables & Exponent Helper -->
+                <button onclick="insertKeypadToken('x')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-amber-300 font-mono font-black text-lg border border-slate-600">x</button>
+                <button onclick="insertKeypadToken('x²')" class="h-10 rounded-lg bg-slate-700 hover:bg-slate-600 text-amber-300 font-mono font-black text-base border border-slate-600">x²</button>
+                <!-- x^\Box Two-Click Exponent Key -->
+                <button id="btn-exponent-mode" onclick="toggleExponentKeyMode()" class="h-10 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-mono font-black text-sm border border-amber-400 flex items-center justify-center gap-1" title="Click x^□ then press any number (e.g. 6) for x⁶">
+                    <span>x</span><sup class="bg-amber-800 text-white text-[9px] px-1 rounded border border-amber-300">□</sup>
+                </button>
+                <button onclick="insertKeypadToken('backspace')" class="h-10 rounded-lg bg-rose-700 hover:bg-rose-600 text-white font-bold text-sm border border-rose-500">⌫</button>
+
+                <!-- Row 2: Numbers 7, 8, 9 & Plus -->
+                <button onclick="insertKeypadToken('7')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">7</button>
+                <button onclick="insertKeypadToken('8')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">8</button>
+                <button onclick="insertKeypadToken('9')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">9</button>
+                <button onclick="insertKeypadToken('+')" class="h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-black text-lg border border-indigo-400">+</button>
+
+                <!-- Row 3: Numbers 4, 5, 6 & Minus -->
+                <button onclick="insertKeypadToken('4')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">4</button>
+                <button onclick="insertKeypadToken('5')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">5</button>
+                <button onclick="insertKeypadToken('6')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">6</button>
+                <button onclick="insertKeypadToken('-')" class="h-10 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-black text-lg border border-indigo-400">−</button>
+
+                <!-- Row 4: Numbers 1, 2, 3 & Clear -->
+                <button onclick="insertKeypadToken('1')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">1</button>
+                <button onclick="insertKeypadToken('2')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">2</button>
+                <button onclick="insertKeypadToken('3')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">3</button>
+                <button onclick="insertKeypadToken('clear')" class="h-10 rounded-lg bg-slate-600 hover:bg-slate-500 text-slate-200 font-bold text-xs border border-slate-500">Clear</button>
+
+                <!-- Row 5: Zero, Decimal, Enter -->
+                <button onclick="insertKeypadToken('0')" class="col-span-2 h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">0</button>
+                <button onclick="insertKeypadToken('.')" class="h-10 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-base border border-slate-700">.</button>
+                <button onclick="insertKeypadToken('enter')" class="h-10 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs border border-emerald-400">Enter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING CALCULATOR WINDOW -->
+    <div id="calculator-tool-window" class="floating-tool-window" role="dialog" style="right: 30px; top: 120px; width: 320px;">
+        <div id="calculator-tool-window-header" class="floating-tool-window-header">
             <div class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-2">
                 <i class="fa-solid fa-calculator text-slate-500"></i> Calculator
             </div>
-            <div class="flex items-center gap-1.5">
-                <button class="px-2 py-0.5 rounded border border-slate-300 bg-white text-slate-600 text-[10px] font-extrabold hover:bg-slate-100" id="btn-reset-calculator-window" type="button" title="Reset position"><i class="fa-solid fa-crosshairs"></i></button>
-                <button aria-label="Close calculator" class="px-2 rounded border border-slate-300 bg-white text-slate-600 font-bold hover:bg-slate-100" id="btn-close-calculator-window" type="button">×</button>
-            </div>
+            <button onclick="toggleFloatingTool('calculator')" class="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 font-bold hover:bg-slate-100 text-xs">×</button>
         </div>
-        <div class="floating-tool-body">
-            <div class="mx-auto w-full max-w-[19rem] rounded-2xl border-2 border-slate-300 bg-slate-800 p-3 shadow-md">
-                <div class="mb-3 rounded-xl bg-slate-100 px-4 py-3 text-right overflow-hidden">
-                    <div class="text-[9px] font-bold tracking-wider text-slate-400">Scratch Pad</div>
-                    <output aria-live="polite" class="block min-h-[2.25rem] font-mono text-2xl font-black text-slate-900 break-all" id="calculator-display">0</output>
-                </div>
-                <div class="grid grid-cols-4 gap-2" id="calculator-keypad">
-                    <button class="h-11 rounded-lg bg-slate-500 hover:bg-slate-400 text-white font-bold" data-calc-action="clear" type="button">C</button>
-                    <button class="h-11 rounded-lg bg-slate-500 hover:bg-slate-400 text-white font-bold" data-calc-action="sign" type="button">±</button>
-                    <button aria-label="Backspace" class="h-11 rounded-lg bg-slate-500 hover:bg-slate-400 text-white font-bold" data-calc-action="backspace" type="button">⌫</button>
-                    <button class="h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-lg font-black" data-calc-operator="divide" type="button">÷</button>
-
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="7" type="button">7</button>
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="8" type="button">8</button>
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="9" type="button">9</button>
-                    <button class="h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-lg font-black" data-calc-operator="multiply" type="button">×</button>
-
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="4" type="button">4</button>
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="5" type="button">5</button>
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="6" type="button">6</button>
-                    <button class="h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-lg font-black" data-calc-operator="subtract" type="button">−</button>
-
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="1" type="button">1</button>
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="2" type="button">2</button>
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="3" type="button">3</button>
-                    <button class="h-11 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-lg font-black" data-calc-operator="add" type="button">+</button>
-
-                    <button class="col-span-2 h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-bold" data-calc-digit="0" type="button">0</button>
-                    <button class="h-11 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-mono font-black" data-calc-action="decimal" type="button">.</button>
-                    <button class="h-11 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-lg font-black" data-calc-action="equals" type="button">=</button>
-                </div>
+        <div class="floating-tool-window-body bg-slate-800 p-3">
+            <div class="mb-3 rounded-xl bg-slate-100 px-4 py-2.5 text-right overflow-hidden">
+                <div class="text-[9px] font-bold tracking-wider text-slate-400">scratchpad</div>
+                <output id="calculator-display" class="block min-h-[2.25rem] font-mono text-xl font-black text-slate-900 break-all">0</output>
+            </div>
+            <div id="calculator-keypad" class="grid grid-cols-4 gap-1.5">
+                <button data-calc-action="clear" class="h-9 rounded bg-slate-500 text-white font-bold">C</button>
+                <button data-calc-action="sign" class="h-9 rounded bg-slate-500 text-white font-bold">±</button>
+                <button data-calc-action="backspace" class="h-9 rounded bg-slate-500 text-white font-bold">⌫</button>
+                <button data-calc-operator="divide" class="h-9 rounded bg-amber-500 text-slate-950 font-black">÷</button>
+                <button data-calc-digit="7" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">7</button>
+                <button data-calc-digit="8" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">8</button>
+                <button data-calc-digit="9" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">9</button>
+                <button data-calc-operator="multiply" class="h-9 rounded bg-amber-500 text-slate-950 font-black">×</button>
+                <button data-calc-digit="4" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">4</button>
+                <button data-calc-digit="5" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">5</button>
+                <button data-calc-digit="6" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">6</button>
+                <button data-calc-operator="subtract" class="h-9 rounded bg-amber-500 text-slate-950 font-black">−</button>
+                <button data-calc-digit="1" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">1</button>
+                <button data-calc-digit="2" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">2</button>
+                <button data-calc-digit="3" class="h-9 rounded bg-slate-100 text-slate-900 font-bold">3</button>
+                <button data-calc-operator="add" class="h-9 rounded bg-amber-500 text-slate-950 font-black">+</button>
+                <button data-calc-digit="0" class="col-span-2 h-9 rounded bg-slate-100 text-slate-900 font-bold">0</button>
+                <button data-calc-action="decimal" class="h-9 rounded bg-slate-100 text-slate-900 font-black">.</button>
+                <button data-calc-action="equals" class="h-9 rounded bg-emerald-500 text-slate-950 font-black">=</button>
             </div>
         </div>
     </div>
 
-    <!-- 2. Floating Multiplication Table Search Tool -->
-    <div aria-label="Movable Multiplication Chart" aria-modal="false" class="floating-tool-window" id="chart-tool-window" role="dialog">
-        <div class="floating-tool-header" id="chart-tool-window-header">
+    <!-- FLOATING MULTIPLICATION CHART WINDOW -->
+    <div id="chart-tool-window" class="floating-tool-window" role="dialog" style="right: 30px; top: 120px; width: 450px;">
+        <div id="chart-tool-window-header" class="floating-tool-window-header">
             <div class="text-xs font-extrabold uppercase tracking-wider text-indigo-700 flex items-center gap-2">
-                <i class="fa-solid fa-table-cells"></i> Multiplication Chart
+                <i class="fa-solid fa-table-cells"></i> Factors Chart
             </div>
-            <div class="flex items-center gap-1.5">
-                <button class="px-2 py-0.5 rounded border border-slate-300 bg-white text-slate-600 text-[10px] font-extrabold hover:bg-slate-100" id="btn-reset-chart-window" type="button" title="Reset position"><i class="fa-solid fa-crosshairs"></i></button>
-                <button aria-label="Close multiplication chart" class="px-2 rounded border border-slate-300 bg-white text-slate-600 font-bold hover:bg-slate-100" id="btn-close-chart-window" type="button">×</button>
-            </div>
+            <button onclick="toggleFloatingTool('chart')" class="px-2 py-1 rounded border border-slate-300 bg-white text-slate-600 font-bold hover:bg-slate-100 text-xs">×</button>
         </div>
-        <div class="floating-tool-body">
-            <div class="flex flex-col gap-3">
-                <div class="flex items-end justify-center gap-2">
-                    <label class="text-xs font-bold text-slate-700 flex-1">
-                        Target product (ac)
-                        <input class="mt-1 w-full px-3 py-1.5 text-center font-mono font-bold bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" id="tool-chart-target" inputmode="numeric" placeholder="enter target product" type="number"/>
-                    </label>
-                    <button onclick="showToolMultiplicationChart()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm" type="button">Show Chart</button>
-                    <button onclick="clearToolMultiplicationChart()" class="px-3 py-2 border border-slate-300 bg-white hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-bold" type="button">Clear</button>
-                </div>
-                <p id="tool-chart-feedback" class="text-[10px] text-slate-500 text-center">Input the absolute target value to isolate rows/columns matching the factor conditions.</p>
-
-                <div id="multiplication-chart-wrapper" class="hidden">
-                    <div class="w-full max-h-60 overflow-auto custom-scrollbar border border-slate-200 rounded-xl bg-white p-1">
-                        <div id="multiplication-chart-grid-container" class="flex justify-center min-w-max"></div>
-                    </div>
-                </div>
-            </div>
+        <div class="floating-tool-window-body p-3">
+            <div id="tool-chart-container" class="w-full overflow-auto max-h-[300px] flex justify-center"></div>
         </div>
     </div>
 
-    <!-- Script Block -->
+    <!-- JavaScript Application Engine -->
     <script>
-        // App State
-        let currentMode = 'int-mult';
+        // Workspace State Engine
+        let activeMode = 'factoring';
         let gridRows = 2;
         let gridCols = 2;
-        let focusedInputTarget = null;
-        let currentProblemData = {};
 
-        let rowHeaders = [];
-        let colHeaders = [];
-        let gridCells = {};
+        let lastFocusedInput = null;
+        let isExponentModeActive = false;
 
-        // Verifications
-        let checkedStates = {
-            rowHeaders: {},
-            colHeaders: {},
-            gridCells: {}
+        const superscriptMap = {
+            '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+            '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
         };
 
-        // --- MATH HELPERS ---
-        function getGCD(x, y) {
-            x = Math.abs(x);
-            y = Math.abs(y);
-            while (y) {
-                const temp = y;
-                y = x % y;
-                x = temp;
-            }
-            return x;
-        }
-
-        // --- INITIALIZATION ---
+        // Window Load Initialization
         window.addEventListener('DOMContentLoaded', () => {
-            switchWorkspaceMode('int-mult');
-            registerCalculatorEvents();
-            setupFloatingToolDrag(calculatorToolWindow, calculatorToolWindowHeader, 'calculator');
-            setupFloatingToolDrag(chartToolWindow, chartToolWindowHeader, 'chart');
-
-            document.body.addEventListener('focusin', (e) => {
-                if (e.target && (e.target.classList.contains('editable-cell-value') || e.target.tagName === 'INPUT')) {
-                    focusedInputTarget = e.target;
-                    let cellName = e.target.id || e.target.dataset.cellId || 'Active cell';
-                    document.getElementById('focused-cell-indicator').textContent = cellName.toUpperCase().replace('-VALUE', '').replace('GRID-','');
-                }
-            });
+            renderAreaModelGrid();
+            setupFocusTracking();
+            makeFloatingToolDraggable(document.getElementById('keyboard-tool-window'), document.getElementById('keyboard-tool-window-header'), 'keyboard');
+            makeFloatingToolDraggable(document.getElementById('calculator-tool-window'), document.getElementById('calculator-tool-window-header'), 'calculator');
+            makeFloatingToolDraggable(document.getElementById('chart-tool-window'), document.getElementById('chart-tool-window-header'), 'chart');
         });
 
-        // --- MULTI-TAB CONTROLLER ---
-        function switchWorkspaceMode(mode) {
-            currentMode = mode;
-            focusedInputTarget = null;
-            document.getElementById('focused-cell-indicator').textContent = 'No cell selected';
-
-            const tabs = ['int-mult', 'int-div', 'poly-mult', 'poly-div', 'complete-square', 'poly-factor'];
-            tabs.forEach(t => {
-                const el = document.getElementById(`tab-${t}`);
-                if (t === mode) {
-                    el.className = "px-3.5 py-2 bg-white text-indigo-600 rounded-lg text-xs font-black shadow-sm whitespace-nowrap";
-                } else {
-                    el.className = "px-3.5 py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all whitespace-nowrap";
+        // Track focused elements across the workspace for keypad insertion
+        function setupFocusTracking() {
+            document.addEventListener('focusin', (e) => {
+                if (e.target.closest('#keyboard-tool-window')) return; // ignore clicks inside keypad itself
+                if (e.target.tagName === 'INPUT' || e.target.classList.contains('editable-model-value') || e.target.isContentEditable) {
+                    lastFocusedInput = e.target;
+                    const label = e.target.getAttribute('aria-label') || e.target.id || 'Selected Cell';
+                    const labelEl = document.getElementById('keypad-active-target');
+                    if (labelEl) labelEl.textContent = label;
                 }
             });
-
-            const labels = {
-                'int-mult': 'Integer Multiplication',
-                'int-div': 'Integer Division',
-                'poly-mult': 'Polynomial Multiplication',
-                'poly-div': 'Polynomial Division',
-                'complete-square': 'Completing the Square',
-                'poly-factor': 'Polynomial Factoring'
-            };
-            document.getElementById('active-mode-badge').textContent = labels[mode];
-
-            generateRandomProblem();
         }
 
-        // --- RANDOM PROBLEM GENERATION & SIZE INFERENCE ---
-        function generateRandomProblem() {
-            let problemText = "";
-            let descText = "";
-            let inputHTML = "";
+        // Keypad Two-Click x^\Box Exponent Key Logic
+        function toggleExponentKeyMode() {
+            isExponentModeActive = !isExponentModeActive;
+            const btn = document.getElementById('btn-exponent-mode');
+            const indicator = document.getElementById('keypad-exp-indicator');
 
-            switch (currentMode) {
-                case 'int-mult':
-                    let num1 = Math.floor(Math.random() * 150) + 12; // e.g., 152
-                    let num2 = Math.floor(Math.random() * 18) + 6;   // e.g., 17
-                    currentProblemData = { type: 'int-mult', val1: num1, val2: num2, answer: num1 * num2 };
-                    problemText = `${num1} × ${num2}`;
-                    descText = "Multiplication: Split your column factors (blue) and row factors (green). Enter the multiplication products inside the grid, then calculate the total sum.";
+            if (isExponentModeActive) {
+                btn.classList.add('bg-amber-400', 'text-slate-950', 'ring-2', 'ring-white');
+                indicator.classList.remove('hidden');
 
-                    gridCols = String(num1).length;
-                    gridRows = String(num2).length;
-
-                    inputHTML = `
-                        <input id="custom-mult-1" type="number" placeholder="e.g. 152" class="w-20 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="${num1}">
-                        <span class="text-sm font-bold font-mono">×</span>
-                        <input id="custom-mult-2" type="number" placeholder="e.g. 17" class="w-20 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="${num2}">
-                    `;
-
-                    // Preset place-value expansions
-                    colHeaders = String(num1).split('').map((char, idx) => Number(char) * Math.pow(10, String(num1).length - 1 - idx));
-                    rowHeaders = String(num2).split('').map((char, idx) => Number(char) * Math.pow(10, String(num2).length - 1 - idx));
-                    break;
-
-                case 'int-div':
-                    let divDivisor = Math.floor(Math.random() * 11) + 4; // e.g. 12
-                    let divQuotient = Math.floor(Math.random() * 25) + 11; // e.g. 23
-                    let divDividend = divDivisor * divQuotient; // Let's keep it exact for clean classroom sheets
-
-                    currentProblemData = { type: 'int-div', dividend: divDividend, divisor: divDivisor, answer: divQuotient };
-                    problemText = `${divDividend} ÷ ${divDivisor}`;
-                    descText = "Division: Place your divisor values on the rows (green). Write the quotient splits on top (blue) and fill the inner products to match the dividend.";
-
-                    gridCols = String(divQuotient).length;
-                    gridRows = String(divDivisor).length;
-
-                    inputHTML = `
-                        <input id="custom-div-1" type="number" placeholder="Dividend" class="w-20 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="${divDividend}">
-                        <span class="text-sm font-bold font-mono">÷</span>
-                        <input id="custom-div-2" type="number" placeholder="Divisor" class="w-20 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="${divDivisor}">
-                    `;
-
-                    rowHeaders = String(divDivisor).split('').map((char, idx) => Number(char) * Math.pow(10, String(divDivisor).length - 1 - idx));
-                    colHeaders = Array(gridCols).fill("");
-                    break;
-
-                case 'poly-mult':
-                    // e.g. (2x + 3)(x - 4)
-                    let p1 = [{coeff: 2, deg: 1}, {coeff: 3, deg: 0}];
-                    let p2 = [{coeff: 1, deg: 1}, {coeff: -4, deg: 0}];
-
-                    currentProblemData = { type: 'poly-mult', p1, p2 };
-                    problemText = `(${formatPolynomial(p1)})(${formatPolynomial(p2)})`;
-                    descText = "Polynomial Multiplication: Place binomial or trinomial values on the outer borders, multiply row × col to resolve cells, and group terms to simplify.";
-
-                    gridCols = p1.length;
-                    gridRows = p2.length;
-
-                    inputHTML = `
-                        <input id="custom-poly-1" type="text" placeholder="(2x + 3)" class="w-24 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="2x+3">
-                        <span class="text-sm font-bold font-mono">×</span>
-                        <input id="custom-poly-2" type="text" placeholder="(x - 4)" class="w-24 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="x-4">
-                    `;
-
-                    colHeaders = p1.map(t => formatSingleTerm(t));
-                    rowHeaders = p2.map(t => formatSingleTerm(t));
-                    break;
-
-                case 'poly-div':
-                    // e.g., (2x² - 5x - 12) ÷ (x - 4) = 2x + 3
-                    let pDividend = [{coeff: 2, deg: 2}, {coeff: -5, deg: 1}, {coeff: -12, deg: 0}];
-                    let pDivisor = [{coeff: 1, deg: 1}, {coeff: -4, deg: 0}];
-
-                    currentProblemData = { type: 'poly-div', dividend: pDividend, divisor: pDivisor };
-                    problemText = `(${formatPolynomial(pDividend)}) ÷ (${formatPolynomial(pDivisor)})`;
-                    descText = "Polynomial Division: Divisor terms go on left rows (green). Write quotient splits on top (blue), and fill diagonal inner products step-by-step.";
-
-                    gridCols = 2; // (2x + 3) quotient
-                    gridRows = pDivisor.length;
-
-                    inputHTML = `
-                        <input id="custom-pdiv-1" type="text" class="w-28 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="2x^2-5x-12">
-                        <span class="text-sm font-bold font-mono">÷</span>
-                        <input id="custom-pdiv-2" type="text" class="w-20 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="x-4">
-                    `;
-
-                    rowHeaders = pDivisor.map(t => formatSingleTerm(t));
-                    colHeaders = Array(gridCols).fill("");
-                    break;
-
-                case 'complete-square':
-                    let compB = 8;
-                    let compC = 5;
-                    currentProblemData = { type: 'complete-square', b: compB, c: compC };
-                    problemText = `x² + ${compB}x + ${compC}`;
-                    descText = "Completing the Square: Pre-fill x² in Top-Left. Divide the linear coefficient b (8x) equally onto the diagonals (4x and 4x), solve GCF headers, and find the perfect square remainder.";
-
-                    gridCols = 2;
-                    gridRows = 2;
-
-                    inputHTML = `
-                        <span class="text-xs font-mono font-bold">x² +</span>
-                        <input id="custom-cs-b" type="number" class="w-14 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="${compB}">
-                        <span class="text-xs font-mono font-bold">x +</span>
-                        <input id="custom-cs-c" type="number" class="w-14 px-2 py-1 text-sm text-center border rounded font-mono font-bold" value="${compC}">
-                    `;
-
-                    colHeaders = ["x", ""];
-                    rowHeaders = ["x", ""];
-                    break;
-
-                case 'poly-factor':
-                    // factoring 2x^2 - 21x + 40
-                    currentProblemData = { type: 'poly-factor', a: 2, b: -21, c: 40 };
-                    problemText = `2x² - 21x + 40`;
-                    descText = "Factoring: Put outer terms in Top-Left and Bottom-Right. Trace the multiplication table below to split the middle term, place them on the diagonals, and solve GCF borders.";
-
-                    gridCols = 2;
-                    gridRows = 2;
-
-                    inputHTML = `
-                        <input id="custom-f-a" type="number" class="w-12 px-1 py-1 text-sm text-center border rounded font-mono font-bold" value="2">
-                        <span class="text-xs font-mono font-bold">x² +</span>
-                        <input id="custom-f-b" type="number" class="w-12 px-1 py-1 text-sm text-center border rounded font-mono font-bold" value="-21">
-                        <span class="text-xs font-mono font-bold">x +</span>
-                        <input id="custom-f-c" type="number" class="w-12 px-1 py-1 text-sm text-center border rounded font-mono font-bold" value="40">
-                    `;
-
-                    colHeaders = ["", ""];
-                    rowHeaders = ["", ""];
-                    break;
-            }
-
-            document.getElementById('active-problem-display').textContent = problemText;
-            document.getElementById('flow-direction-text').textContent = descText;
-            document.getElementById('custom-inputs-wrapper').innerHTML = inputHTML;
-
-            // Clear cells and check statuses
-            gridCells = {};
-            for (let r = 0; r < gridRows; r++) {
-                for (let c = 0; c < gridCols; c++) {
-                    gridCells[`${r},${c}`] = "";
+                // If last focused input doesn't end with x, append x first
+                if (lastFocusedInput) {
+                    const text = lastFocusedInput.isContentEditable ? lastFocusedInput.textContent : lastFocusedInput.value;
+                    if (!text.endsWith('x')) {
+                        insertTextToTarget('x');
+                    }
                 }
+            } else {
+                btn.classList.remove('bg-amber-400', 'text-slate-950', 'ring-2', 'ring-white');
+                indicator.classList.add('hidden');
             }
-
-            // Seed initial cells depending on operation
-            if (currentMode === 'poly-div') {
-                gridCells["0,0"] = "2x²"; // Seed first term
-            } else if (currentMode === 'complete-square') {
-                gridCells["0,0"] = "x²";
-            }
-
-            checkedStates = { rowHeaders: {}, colHeaders: {}, gridCells: {} };
-
-            buildInstructionalStages();
-            rebuildAreaModelGridTable();
         }
 
-        // --- APPLY CUSTOM EQUATION FROM TEXT INPUTS ---
-        function applyTypedCustomProblem() {
-            let descText = "";
-            let problemText = "";
+        // Insert Token from Keypad into Focused Element
+        function insertKeypadToken(token) {
+            if (!lastFocusedInput) {
+                // Default target: Top-Left cell or first editable field
+                lastFocusedInput = document.querySelector('.editable-model-value') || document.querySelector('input');
+            }
+            if (!lastFocusedInput) return;
 
-            if (currentMode === 'int-mult') {
-                let v1 = parseInt(document.getElementById('custom-mult-1').value) || 12;
-                let v2 = parseInt(document.getElementById('custom-mult-2').value) || 6;
-                currentProblemData = { type: 'int-mult', val1: v1, val2: v2, answer: v1 * v2 };
-                problemText = `${v1} × ${v2}`;
-                gridCols = String(v1).length;
-                gridRows = String(v2).length;
-                colHeaders = String(v1).split('').map((char, idx) => Number(char) * Math.pow(10, String(v1).length - 1 - idx));
-                rowHeaders = String(v2).split('').map((char, idx) => Number(char) * Math.pow(10, String(v2).length - 1 - idx));
-            } else if (currentMode === 'int-div') {
-                let divDividend = parseInt(document.getElementById('custom-div-1').value) || 100;
-                let divDivisor = parseInt(document.getElementById('custom-div-2').value) || 10;
-                currentProblemData = { type: 'int-div', dividend: divDividend, divisor: divDivisor, answer: divDividend / divDivisor };
-                problemText = `${divDividend} ÷ ${divDivisor}`;
-                gridCols = String(Math.floor(divDividend / divDivisor)).length;
-                gridRows = String(divDivisor).length;
-                rowHeaders = String(divDivisor).split('').map((char, idx) => Number(char) * Math.pow(10, String(divDivisor).length - 1 - idx));
-                colHeaders = Array(gridCols).fill("");
-            } else if (currentMode === 'complete-square') {
-                let csB = parseInt(document.getElementById('custom-cs-b').value) || 8;
-                let csC = parseInt(document.getElementById('custom-cs-c').value) || 5;
-                currentProblemData = { type: 'complete-square', b: csB, c: csC };
-                problemText = `x² + ${csB}x + ${csC}`;
-                gridCols = 2;
-                gridRows = 2;
-                colHeaders = ["x", ""];
-                rowHeaders = ["x", ""];
-            } else if (currentMode === 'poly-factor') {
-                let fa = parseInt(document.getElementById('custom-f-a').value) || 1;
-                let fb = parseInt(document.getElementById('custom-f-b').value) || 5;
-                let fc = parseInt(document.getElementById('custom-f-c').value) || 6;
-                currentProblemData = { type: 'poly-factor', a: fa, b: fb, c: fc };
-                problemText = `${fa === 1 ? '' : fa}x² ${fb >= 0 ? '+' : ''} ${fb}x ${fc >= 0 ? '+' : ''} ${fc}`;
-                gridCols = 2;
-                gridRows = 2;
-                colHeaders = ["", ""];
-                rowHeaders = ["", ""];
-            } else {
-                alert("Mode custom inputs applied!");
+            if (token === 'clear') {
+                if (lastFocusedInput.isContentEditable) lastFocusedInput.textContent = '';
+                else lastFocusedInput.value = '';
                 return;
             }
 
-            document.getElementById('active-problem-display').textContent = problemText;
-
-            gridCells = {};
-            for (let r = 0; r < gridRows; r++) {
-                for (let c = 0; c < gridCols; c++) {
-                    gridCells[`${r},${c}`] = "";
+            if (token === 'backspace') {
+                if (lastFocusedInput.isContentEditable) {
+                    let str = lastFocusedInput.textContent;
+                    lastFocusedInput.textContent = str.slice(0, -1);
+                } else {
+                    lastFocusedInput.value = lastFocusedInput.value.slice(0, -1);
                 }
-            }
-
-            if (currentMode === 'complete-square') {
-                gridCells["0,0"] = "x²";
-            }
-
-            checkedStates = { rowHeaders: {}, colHeaders: {}, gridCells: {} };
-            buildInstructionalStages();
-            rebuildAreaModelGridTable();
-        }
-
-        // --- POLY FORMATTER ---
-        function formatPolynomial(terms) {
-            return terms.map((t, idx) => {
-                let sign = t.coeff >= 0 ? (idx > 0 ? " + " : "") : (idx > 0 ? " - " : "-");
-                let absVal = Math.abs(t.coeff);
-                let coeffStr = (absVal === 1 && t.deg > 0) ? "" : absVal;
-                let varStr = t.deg === 2 ? "x²" : (t.deg === 1 ? "x" : "");
-                return `${sign}${coeffStr}${varStr}`;
-            }).join('');
-        }
-
-        function formatSingleTerm(t) {
-            let absVal = Math.abs(t.coeff);
-            let coeffStr = (absVal === 1 && t.deg > 0) ? "" : absVal;
-            let varStr = t.deg === 2 ? "x²" : (t.deg === 1 ? "x" : "");
-            let signStr = t.coeff < 0 ? "−" : "";
-            return `${signStr}${coeffStr}${varStr}`;
-        }
-
-        // --- TABLE GENERATOR (UNIVERSAL TABLE GRID SIZE) ---
-        function rebuildAreaModelGridTable() {
-            document.getElementById('col-count-text').textContent = gridCols;
-            document.getElementById('row-count-text').textContent = gridRows;
-            document.getElementById('grid-dimensions-pill').textContent = `${gridRows} × ${gridCols} Grid`;
-
-            let tableHTML = `<table class="border-collapse border-2 border-slate-350 text-sm font-mono shadow-md w-full">`;
-
-            // Header Row (Top headers col GCFs/Quotients)
-            tableHTML += `<tr class="bg-slate-50">`;
-            tableHTML += `<td class="border-2 border-slate-200 bg-slate-100 p-3 text-center text-xs font-black text-slate-500 relative">
-                ×
-                <div class="absolute bottom-1 right-1 text-slate-300"><i class="fa-solid fa-arrow-down-right"></i></div>
-            </td>`;
-
-            for (let c = 0; c < gridCols; c++) {
-                let val = colHeaders[c] || "";
-                let isCorrect = checkedStates.colHeaders[c] ? 'cell-correct' : '';
-
-                tableHTML += `<td class="border-2 border-slate-300 p-3 text-center font-bold text-blue-600 bg-blue-50/50 hover:bg-blue-100/50 relative">
-                    <span id="col-header-${c}" data-col-id="${c}" class="editable-cell-value text-base font-black tracking-wide block w-full px-2 py-1 ${isCorrect}" contenteditable="true" data-placeholder="factor">${val}</span>
-                    <span class="text-[8px] text-slate-400 font-sans block mt-1 uppercase">Col ${c+1}</span>
-                    <div class="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-blue-300/60 text-[9px]"><i class="fa-solid fa-arrow-down"></i></div>
-                </td>`;
-            }
-            tableHTML += `</tr>`;
-
-            // Body Rows (Row header + inner product cells)
-            for (let r = 0; r < gridRows; r++) {
-                tableHTML += `<tr>`;
-
-                // Outer Left Header (Row GCF)
-                let rVal = rowHeaders[r] || "";
-                let isRowCorrect = checkedStates.rowHeaders[r] ? 'cell-correct' : '';
-                tableHTML += `<td class="border-2 border-slate-300 p-3 text-center font-bold text-emerald-600 bg-emerald-50/40 hover:bg-emerald-100/40 relative min-w-[90px]">
-                    <span id="row-header-${r}" data-row-id="${r}" class="editable-cell-value text-base font-black tracking-wide block w-full px-2 py-1 ${isRowCorrect}" contenteditable="true" data-placeholder="factor">${rVal}</span>
-                    <span class="text-[8px] text-slate-400 font-sans block mt-1 uppercase">Row ${r+1}</span>
-                    <div class="absolute right-0.5 top-1/2 -translate-y-1/2 text-emerald-300/60 text-[9px]"><i class="fa-solid fa-arrow-right"></i></div>
-                </td>`;
-
-                // Inner cells
-                for (let c = 0; c < gridCols; c++) {
-                    let cellVal = gridCells[`${r},${c}`] || "";
-                    let isCellCorrect = checkedStates.gridCells[`${r},${c}`] ? 'cell-correct' : '';
-
-                    tableHTML += `<td class="border-2 border-slate-300 p-4 bg-white hover:bg-slate-50 transition-colors relative min-w-[110px]">
-                        <span id="cell-${r}-${c}" data-cell-id="${r},${c}" class="editable-cell-value text-xl font-black block w-full py-2 ${isCellCorrect}" contenteditable="true" data-placeholder="product">${cellVal}</span>
-                        <span class="text-[8px] text-slate-300 font-sans block mt-1 uppercase">Cell ${r+1},${c+1}</span>
-                    </td>`;
-                }
-                tableHTML += `</tr>`;
-            }
-
-            tableHTML += `</table>`;
-            document.getElementById('area-model-table-container').innerHTML = tableHTML;
-
-            attachGridInputListeners();
-        }
-
-        // --- GRID INTERACTIVITY LISTENERS ---
-        function attachGridInputListeners() {
-            for (let c = 0; c < gridCols; c++) {
-                const el = document.getElementById(`col-header-${c}`);
-                el.addEventListener('blur', () => { colHeaders[c] = el.textContent.trim(); });
-                el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
-            }
-            for (let r = 0; r < gridRows; r++) {
-                const el = document.getElementById(`row-header-${r}`);
-                el.addEventListener('blur', () => { rowHeaders[r] = el.textContent.trim(); });
-                el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
-            }
-            for (let r = 0; r < gridRows; r++) {
-                for (let c = 0; c < gridCols; c++) {
-                    const el = document.getElementById(`cell-${r}-${c}`);
-                    el.addEventListener('blur', () => { gridCells[`${r},${c}`] = el.textContent.trim(); });
-                    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
-                }
-            }
-        }
-
-        // --- GRID SIZE MODIFIERS ---
-        function modifyGridSize(dimension, delta) {
-            if (dimension === 'col') {
-                gridCols = Math.max(1, Math.min(5, gridCols + delta));
-                while (colHeaders.length < gridCols) colHeaders.push("");
-                if (colHeaders.length > gridCols) colHeaders = colHeaders.slice(0, gridCols);
-            } else {
-                gridRows = Math.max(1, Math.min(5, gridRows + delta));
-                while (rowHeaders.length < gridRows) rowHeaders.push("");
-                if (rowHeaders.length > gridRows) rowHeaders = rowHeaders.slice(0, gridRows);
-            }
-
-            for (let r = 0; r < gridRows; r++) {
-                for (let c = 0; c < gridCols; c++) {
-                    if (gridCells[`${r},${c}`] === undefined) {
-                        gridCells[`${r},${c}`] = "";
-                    }
-                }
-            }
-
-            rebuildAreaModelGridTable();
-        }
-
-        // --- EVALUATION / GRADER ENGINE ---
-        function checkGridSolution() {
-            let correctCount = 0;
-            let totalCells = gridRows * gridCols;
-            checkedStates = { rowHeaders: {}, colHeaders: {}, gridCells: {} };
-
-            let parsedRows = rowHeaders.map(v => Number(v) || 0);
-            let parsedCols = colHeaders.map(v => Number(v) || 0);
-
-            if (currentMode === 'int-mult') {
-                // Verify Expanded multiplication place value products
-                let sumCols = parsedCols.reduce((sum, val) => sum + val, 0);
-                let sumRows = parsedRows.reduce((sum, val) => sum + val, 0);
-
-                let colsMatch = (sumCols === currentProblemData.val1);
-                let rowsMatch = (sumRows === currentProblemData.val2);
-
-                for (let c = 0; c < gridCols; c++) checkedStates.colHeaders[c] = colsMatch;
-                for (let r = 0; r < gridRows; r++) checkedStates.rowHeaders[r] = rowsMatch;
-
-                for (let r = 0; r < gridRows; r++) {
-                    for (let c = 0; c < gridCols; c++) {
-                        let cellVal = Number(gridCells[`${r},${c}`]) || 0;
-                        let correctProduct = parsedRows[r] * parsedCols[c];
-                        if (cellVal === correctProduct && cellVal !== 0) {
-                            checkedStates.gridCells[`${r},${c}`] = true;
-                            correctCount++;
-                        }
-                    }
-                }
-            } else if (currentMode === 'int-div') {
-                // Integer division: columns are quotients, rows are divisors. Inner cells are products.
-                for (let r = 0; r < gridRows; r++) {
-                    for (let c = 0; c < gridCols; c++) {
-                        let cellVal = Number(gridCells[`${r},${c}`]) || 0;
-                        let correctProduct = parsedRows[r] * parsedCols[c];
-                        if (cellVal === correctProduct && cellVal !== 0) {
-                            checkedStates.gridCells[`${r},${c}`] = true;
-                            correctCount++;
-                        }
-                    }
-                }
-            } else {
-                // Polynomial algebraic checks
-                for (let r = 0; r < gridRows; r++) {
-                    for (let c = 0; c < gridCols; c++) {
-                        let val = gridCells[`${r},${c}`];
-                        if (val && val.trim() !== '') {
-                            checkedStates.gridCells[`${r},${c}`] = true;
-                            correctCount++;
-                        }
-                    }
-                }
-            }
-
-            rebuildAreaModelGridTable();
-            alert("Workspace Checked! Correctly multiplied cells are highlighted in green.");
-        }
-
-        // --- STAGE INSTRUCTION GENERATOR ---
-        function buildInstructionalStages() {
-            const stagesWrapper = document.getElementById('stage-instructions-wrapper');
-            stagesWrapper.innerHTML = "";
-            let steps = [];
-
-            if (currentMode === 'int-mult') {
-                steps = [
-                    { title: "1. Expand place values", desc: `Deconstruct ${currentProblemData.val1} and ${currentProblemData.val2} into their expanded place values (e.g. 100 + 50 + 2), and type them onto the top and left headers.` },
-                    { title: "2. Fill Box Products", desc: "Multiply row × column headers to find each partial product and write it in the corresponding white cell." },
-                    { title: "3. Accumulate sum", desc: "Sum up all cells inside the grid to discover the final combined product: " + currentProblemData.answer }
-                ];
-            } else if (currentMode === 'int-div') {
-                steps = [
-                    { title: "1. Load divisor splits", desc: `Load your divisor ${currentProblemData.divisor} onto the rows on the left.` },
-                    { title: "2. Solve quotients", desc: "Guess quotient units on the top headers and fill the corresponding inner grid products to match parts of the dividend." }
-                ];
-            } else if (currentMode === 'poly-mult') {
-                steps = [
-                    { title: "1. Align terms", desc: "Place individual terms of each binomial multiplier onto the blue and green border cells." },
-                    { title: "2. Multiply algebraic grids", desc: "Multiply the row terms by column terms (e.g. 2x × x = 2x²) to fill the inner grid spaces." }
-                ];
-            } else if (currentMode === 'poly-div') {
-                steps = [
-                    { title: "1. Divisor row inputs", desc: "Place divisor binomial terms on the left rows." },
-                    { title: "2. Reverse-tabular calculations", desc: "Place the first term of the dividend (e.g. 2x²) in Cell 1,1. Find the top header that multiplies row 1 to get that term." }
-                ];
-            } else {
-                steps = [
-                    { title: "1. Grid Analysis", desc: "Use the grid borders to calculate terms and complete the algebraic steps." }
-                ];
-            }
-
-            steps.forEach((step, idx) => {
-                const stepCard = document.createElement('div');
-                stepCard.className = "bg-white border border-slate-200 rounded-2xl p-5 shadow-md flex flex-col gap-2";
-                stepCard.innerHTML = `
-                    <div class="flex items-center gap-2 border-b border-slate-100 pb-2 mb-1">
-                        <span class="stage-progress-circle">${idx + 1}</span>
-                        <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wide">${step.title}</h3>
-                    </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">${step.desc}</p>
-                `;
-                stagesWrapper.appendChild(stepCard);
-            });
-        }
-
-        // --- VIRTUAL KEYBOARD HANDLER ---
-        function pressVirtualKey(key) {
-            if (!focusedInputTarget) {
-                alert("Click on a cell or border input on the Area Model first to focus it!");
                 return;
             }
 
-            if (focusedInputTarget.tagName === 'INPUT') {
-                let start = focusedInputTarget.selectionStart || 0;
-                let end = focusedInputTarget.selectionEnd || 0;
-                let val = focusedInputTarget.value;
+            if (token === 'enter') {
+                lastFocusedInput.blur();
+                return;
+            }
 
-                if (key === '⌫') {
-                    focusedInputTarget.value = val.slice(0, -1);
-                } else if (key === 'Clear') {
-                    focusedInputTarget.value = '';
-                } else if (key === 'x²') {
-                    focusedInputTarget.value += 'x^2';
-                } else if (key === '−') {
-                    focusedInputTarget.value += '-';
-                } else {
-                    focusedInputTarget.value += key;
-                }
+            // Exponent Mode handling: if exponent mode is active and token is a digit
+            let textToInsert = token;
+            if (isExponentModeActive && superscriptMap[token]) {
+                textToInsert = superscriptMap[token];
+                // Turn off exponent mode after applying superscript
+                toggleExponentKeyMode();
+            }
+
+            insertTextToTarget(textToInsert);
+        }
+
+        function insertTextToTarget(str) {
+            if (!lastFocusedInput) return;
+            if (lastFocusedInput.isContentEditable) {
+                lastFocusedInput.textContent += str;
             } else {
-                let curText = focusedInputTarget.textContent;
-                if (key === '⌫') {
-                    focusedInputTarget.textContent = curText.slice(0, -1);
-                } else if (key === 'Clear') {
-                    focusedInputTarget.textContent = '';
-                } else if (key === 'x²') {
-                    focusedInputTarget.textContent += 'x²';
-                } else if (key === '−') {
-                    focusedInputTarget.textContent += '−';
-                } else {
-                    focusedInputTarget.textContent += key;
+                lastFocusedInput.value += str;
+            }
+            // Trigger change/input events
+            lastFocusedInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        // Render Dynamic Area Model Grid based on active dimensions
+        function renderAreaModelGrid() {
+            const container = document.getElementById('area-model-dynamic-container');
+            const dimLabel = document.getElementById('grid-dim-label');
+            if (dimLabel) dimLabel.textContent = `${gridRows} × ${gridCols}`;
+
+            let html = `<div class="grid gap-2 text-center font-mono font-bold select-none" style="grid-template-columns: 80px repeat(${gridCols}, minmax(80px, 1fr));">`;
+
+            // Row 0: Top-Left spacer + Top Column Headers (Givens or Quotients)
+            html += `<div></div>`;
+            for (let c = 1; c <= gridCols; c++) {
+                html += `<div id="gcf-col-${c}" class="flex items-center justify-center p-2 text-blue-600 bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl text-sm min-h-[48px]">
+                    <span class="editable-model-value text-blue-800 font-black" contenteditable="true" data-placeholder="col ${c}" aria-label="Column ${c} header"></span>
+                </div>`;
+            }
+
+            // Inner Grid Rows
+            for (let r = 1; r <= gridRows; r++) {
+                // Row Header
+                html += `<div id="gcf-row-${r}" class="flex items-center justify-center p-2 text-emerald-600 bg-emerald-50 border-2 border-dashed border-emerald-300 rounded-xl text-sm min-h-[48px]">
+                    <span class="editable-model-value text-emerald-800 font-black" contenteditable="true" data-placeholder="row ${r}" aria-label="Row ${r} header"></span>
+                </div>`;
+
+                // Product Cells in Row
+                for (let c = 1; c <= gridCols; c++) {
+                    html += `<div id="cell-${r}-${c}" class="flex flex-col items-center justify-center p-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 min-h-[64px] relative">
+                        <span class="editable-model-value text-xl font-black" contenteditable="true" data-placeholder="cell ${r},${c}" aria-label="Cell Row ${r} Column ${c}"></span>
+                    </div>`;
                 }
             }
 
-            // Fire input event to trigger binding updates
-            const event = new Event('input', { bubbles: true });
-            focusedInputTarget.dispatchEvent(event);
+            html += `</div>`;
+            container.innerHTML = html;
         }
 
-        function dismissVirtualKeyboard() {
-            document.getElementById('virtual-math-keypad').classList.add('opacity-30', 'pointer-events-none');
+        function changeGridSize(delta) {
+            gridRows = Math.max(1, Math.min(5, gridRows + delta));
+            gridCols = Math.max(1, Math.min(5, gridCols + delta));
+            renderAreaModelGrid();
         }
 
-        // --- MOVABLE DRAGGABLE WIDGETS ---
-        let activeDragTool = null;
-        let activeDragOffset = { x: 0, y: 0 };
+        // Mode Switching System
+        function switchMode(mode) {
+            activeMode = mode;
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm');
+                tab.classList.add('text-slate-600');
+            });
+            const activeTab = document.getElementById(`tab-${mode}`);
+            if (activeTab) {
+                activeTab.classList.add('bg-white', 'text-indigo-700', 'shadow-sm');
+                activeTab.classList.remove('text-slate-600');
+            }
 
-        function setupFloatingToolDrag(windowEl, headerEl, kind) {
-            headerEl.addEventListener('pointerdown', (e) => {
+            const title = document.getElementById('mode-title');
+            const desc = document.getElementById('mode-description');
+            const factoringGroup = document.getElementById('factoring-cards-group');
+            const termCards = document.getElementById('term-cards-container');
+
+            if (mode === 'factoring') {
+                title.innerHTML = `<i class="fa-solid fa-graduation-cap text-indigo-500"></i> Polynomial Factoring`;
+                desc.textContent = "Identify GCF, split middle term coefficients, and find row/column factors.";
+                factoringGroup.classList.remove('hidden');
+                termCards.classList.remove('hidden');
+                gridRows = 2; gridCols = 2;
+                renderAreaModelGrid();
+            } else if (mode === 'int-mult') {
+                title.innerHTML = `<i class="fa-solid fa-calculator text-emerald-500"></i> Integer Multiplication`;
+                desc.textContent = "Expand numbers into place-value sums (e.g. 152 = 100 + 50 + 2). Multiply inner boxes and sum.";
+                factoringGroup.classList.add('hidden');
+                termCards.classList.add('hidden');
+            } else if (mode === 'poly-div') {
+                title.innerHTML = `<i class="fa-solid fa-divide text-amber-500"></i> Polynomial Division`;
+                desc.textContent = "Set the divisor on the left row headers. Match diagonal sums to find quotient terms on top.";
+                factoringGroup.classList.add('hidden');
+                termCards.classList.add('hidden');
+            } else if (mode === 'square') {
+                title.innerHTML = `<i class="fa-solid fa-square-full text-purple-500"></i> Completing the Square`;
+                desc.textContent = "Place x² in Top-Left and split the linear bx term equally across diagonals to find the perfect square constant.";
+                factoringGroup.classList.add('hidden');
+                termCards.classList.add('hidden');
+                gridRows = 2; gridCols = 2;
+                renderAreaModelGrid();
+            } else {
+                title.innerHTML = `<i class="fa-solid fa-shapes text-indigo-500"></i> ${mode.toUpperCase()} Mode`;
+                desc.textContent = "Configure grid size and complete the Area Model calculations.";
+                factoringGroup.classList.add('hidden');
+                termCards.classList.add('hidden');
+            }
+        }
+
+        // Floating Tool Window Draggable Mechanics
+        let activeZ = 200;
+        function toggleFloatingTool(kind) {
+            const win = document.getElementById(`${kind}-tool-window`);
+            if (!win) return;
+            const isOpen = win.classList.contains('is-open');
+            if (isOpen) {
+                win.classList.remove('is-open');
+            } else {
+                win.classList.add('is-open');
+                win.style.zIndex = ++activeZ;
+            }
+        }
+
+        function makeFloatingToolDraggable(win, header, kind) {
+            if (!win || !header) return;
+            let drag = null;
+
+            header.addEventListener('pointerdown', (e) => {
                 if (e.button !== 0 || e.target.closest('button')) return;
-                activeDragTool = windowEl;
-                let rect = windowEl.getBoundingClientRect();
-                activeDragOffset = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
-                };
-                headerEl.setPointerCapture(e.pointerId);
+                const rect = win.getBoundingClientRect();
+                drag = { pointerId: e.pointerId, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top };
+                win.style.zIndex = ++activeZ;
+                header.setPointerCapture?.(e.pointerId);
                 e.preventDefault();
             });
 
-            headerEl.addEventListener('pointermove', (e) => {
-                if (activeDragTool !== windowEl) return;
-                let left = e.clientX - activeDragOffset.x;
-                let top = e.clientY - activeDragOffset.y;
-
-                left = Math.max(10, Math.min(window.innerWidth - 100, left));
-                top = Math.max(10, Math.min(window.innerHeight - 100, top));
-
-                windowEl.style.left = `${left}px`;
-                windowEl.style.top = `${top}px`;
+            header.addEventListener('pointermove', (e) => {
+                if (!drag || e.pointerId !== drag.pointerId) return;
+                const left = Math.max(10, Math.min(window.innerWidth - win.offsetWidth - 10, e.clientX - drag.offsetX));
+                const top = Math.max(10, Math.min(window.innerHeight - win.offsetHeight - 10, e.clientY - drag.offsetY));
+                win.style.left = `${left}px`;
+                win.style.top = `${top}px`;
             });
 
             const endDrag = (e) => {
-                if (activeDragTool === windowEl) {
-                    headerEl.releasePointerCapture(e.pointerId);
-                    activeDragTool = null;
-                }
+                if (!drag || (e && e.pointerId !== drag.pointerId)) return;
+                try { header.releasePointerCapture?.(e.pointerId); } catch (_) {}
+                drag = null;
             };
 
-            headerEl.addEventListener('pointerup', endDrag);
-            headerEl.addEventListener('pointercancel', endDrag);
+            header.addEventListener('pointerup', endDrag);
+            header.addEventListener('pointercancel', endDrag);
         }
 
-        function toggleFloatingTool(kind) {
-            const win = kind === 'calculator' ? calculatorToolWindow : chartToolWindow;
-            win.classList.toggle('is-open');
-            if (win.classList.contains('is-open')) {
-                win.style.left = kind === 'calculator' ? '60px' : '400px';
-                win.style.top = '140px';
-            }
+        function constrainFloatingTool(win, options) {
+            if (!win) return;
+            win.style.left = '30px';
+            win.style.bottom = '30px';
+            win.style.top = 'auto';
         }
-
-        // --- SCRATCH CALCULATOR LOGIC ---
-        function registerCalculatorEvents() {
-            const display = document.getElementById('calculator-display');
-            let calcVal = "0";
-            let op = null;
-            let stored = null;
-            let resetOnNext = false;
-
-            document.getElementById('calculator-keypad').addEventListener('click', (e) => {
-                const btn = e.target.closest('button');
-                if (!btn) return;
-
-                const val = btn.dataset.calcDigit;
-                const oper = btn.dataset.calcOperator;
-                const act = btn.dataset.calcAction;
-
-                if (val !== undefined) {
-                    if (calcVal === "0" || resetOnNext) {
-                        calcVal = val;
-                        resetOnNext = false;
-                    } else {
-                        calcVal += val;
-                    }
-                    display.textContent = calcVal;
-                } else if (oper !== undefined) {
-                    stored = Number(calcVal);
-                    op = oper;
-                    resetOnNext = true;
-                } else if (act === 'clear') {
-                    calcVal = "0";
-                    stored = null;
-                    op = null;
-                    display.textContent = calcVal;
-                } else if (act === 'sign') {
-                    calcVal = calcVal.startsWith('-') ? calcVal.slice(1) : `-${calcVal}`;
-                    display.textContent = calcVal;
-                } else if (act === 'backspace') {
-                    calcVal = calcVal.length <= 1 ? "0" : calcVal.slice(0, -1);
-                    display.textContent = calcVal;
-                } else if (act === 'equals') {
-                    if (op && stored !== null) {
-                        let current = Number(calcVal);
-                        let res = 0;
-                        if (op === 'add') res = stored + current;
-                        else if (op === 'subtract') res = stored - current;
-                        else if (op === 'multiply') res = stored * current;
-                        else if (op === 'divide') res = current === 0 ? NaN : stored / current;
-
-                        calcVal = String(res);
-                        display.textContent = calcVal;
-                        stored = null;
-                        op = null;
-                        resetOnNext = true;
-                    }
-                }
-            });
-        }
-
-        // Close widgets
-        btnCloseCalculatorWindow?.addEventListener('click', () => {
-            calculatorToolWindow.classList.remove('is-open');
-        });
-        btnCloseChartWindow?.addEventListener('click', () => {
-            chartToolWindow.classList.remove('is-open');
-        });
     </script>
 </body>
 </html>
